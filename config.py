@@ -10,7 +10,7 @@
 import os
 
 class Config:
-    BOT_TOKEN = os.getenv("BOT_TOKEN", "8510968310:AAH-I3Jz7IjhuLQUVMSyS_1lWnkCJ4xvI_E")
+    BOT_TOKEN = os.getenv("BOT_TOKEN", "8415197366:AAEL2MwvLdEUbKQCnFUkKXibctF56Bip4aE")
     USER_ID = int(os.getenv("USER_ID", "5756495153"))
     API_ID = int(os.getenv("API_ID", "29483517"))
     API_HASH = os.getenv("API_HASH", "e35a05d338376cbcd8162f810aed878d")
