@@ -308,7 +308,7 @@ class MangakakalotAPI:
                     src = img.get('src') or img.get('data-src') or img.get('data-original')
                     if src and not src.lower().endswith('.gif') and 'logo' not in src.lower():
                         if not src.startswith('http'):
-                            src = 'https:' + src if src.startswith('//') else urljoin(chapter_url, src)
+                            src = 'https:' + src if src.startswith('//') else urljoin(base_url, src)
                         images.append(src.strip())
 
             except Exception as e:
