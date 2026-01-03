@@ -7,13 +7,6 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
-try:
-    from curl_cffi import requests as curl_requests
-    CURL_CFFI_AVAILABLE = True
-except ImportError:
-    CURL_CFFI_AVAILABLE = False
-    logging.warning("curl_cffi not available, falling back to aiohttp")
-
 logger = logging.getLogger(__name__)
 
 class MangakakalotAPI:
@@ -287,153 +280,54 @@ class MangakakalotAPI:
         return []
 
     async def get_chapter_images(self, chapter_url: str) -> Optional[List[str]]:
-        """Get image URLs from chapter page - IMPROVED VERSION"""
+        """Get image URLs from chapter page - Simple version like MangaForest"""
         images = []
-        
-        # Use curl_cffi if available for better success rate
-        if CURL_CFFI_AVAILABLE:
-            try:
-                response = curl_requests.get(
-                    chapter_url,
-                    headers=self.headers,
-                    impersonate="chrome120",
-                    timeout=60
-                )
-                
-                if response.status_code == 200:
-                    soup = BeautifulSoup(response.text, 'html.parser')
-                    container = soup.find('div', class_='container-chapter-reader')
-                    
-                    if container:
-                        img_tags = container.find_all('img')
-                        for img in img_tags:
-                            src = img.get('src') or img.get('data-src') or img.get('data-original')
-                            if src and not src.lower().endswith('.gif') and 'logo' not in src.lower():
-                                if not src.startswith('http'):
-                                    src = 'https:' + src if src.startswith('//') else urljoin(self.base_url, src)
-                                images.append(src.strip())
-                        
-                        logger.info(f"✅ Found {len(images)} images using curl_cffi")
-                        return images if images else None
-                    else:
-                        logger.warning("No chapter reader container found")
-                        
-            except Exception as e:
-                logger.error(f"curl_cffi get_chapter_images error: {e}")
-        
-        # Fallback to aiohttp
         async with aiohttp.ClientSession(headers=self.headers) as session:
             try:
                 async with session.get(chapter_url, timeout=60) as resp:
                     if resp.status != 200:
+                        logger.error(f"Failed to fetch chapter page: {resp.status}")
                         return None
                     html = await resp.text()
                     soup = BeautifulSoup(html, 'html.parser')
 
+                # Find the chapter reader container
                 container = soup.find('div', class_='container-chapter-reader')
                 if not container:
                     logger.warning("No chapter reader container found")
                     return None
 
+                # Find all images in the container
                 img_tags = container.find_all('img')
+                
                 for img in img_tags:
+                    # Try multiple attributes for image source
                     src = img.get('src') or img.get('data-src') or img.get('data-original')
-                    if src and not src.lower().endswith('.gif') and 'logo' not in src.lower():
+                    
+                    if src:
+                        # Skip GIFs and logos
+                        if src.lower().endswith('.gif') or 'logo' in src.lower():
+                            continue
+                        
+                        # Handle relative URLs
                         if not src.startswith('http'):
-                            src = 'https:' + src if src.startswith('//') else urljoin(self.base_url, src)
+                            if src.startswith('//'):
+                                src = 'https:' + src
+                            else:
+                                src = urljoin(self.base_url, src)
+                        
                         images.append(src.strip())
+                
+                if images:
+                    logger.info(f"✅ Found {len(images)} images in chapter")
+                else:
+                    logger.warning("No images found in chapter")
 
             except Exception as e:
-                logger.error(f"aiohttp get_chapter_images error: {e}")
+                logger.error(f"get_chapter_images error: {e}")
+                return None
 
         return images if images else None
-
-    def download_image_sync(self, image_url: str, chapter_url: str) -> Optional[bytes]:
-        """
-        Download image using curl_cffi with browser impersonation
-        THIS IS THE KEY METHOD FOR BYPASSING CLOUDFLARE/CDN BLOCKS
-        """
-        if not CURL_CFFI_AVAILABLE:
-            logger.error("❌ curl_cffi is NOT installed! Cannot download images.")
-            logger.error("Install it with: pip install curl-cffi")
-            return None
-        
-        try:
-            # Enhanced headers that mimic a real browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': chapter_url,  # Critical: tells CDN where we came from
-                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"Windows"',
-                'Sec-Fetch-Dest': 'image',
-                'Sec-Fetch-Mode': 'no-cors',
-                'Sec-Fetch-Site': 'cross-site',
-            }
-            
-            logger.info(f"📥 Downloading: {image_url}")
-            
-            # The magic happens here: impersonate="chrome120"
-            response = curl_requests.get(
-                image_url,
-                headers=headers,
-                impersonate="chrome120",  # Mimics Chrome's TLS fingerprint
-                timeout=60,
-                allow_redirects=True
-            )
-            
-            if response.status_code == 200:
-                logger.info(f"✅ Successfully downloaded: {image_url} ({len(response.content)} bytes)")
-                return response.content
-            else:
-                logger.error(f"❌ Failed with status {response.status_code}: {image_url}")
-                return None
-                
-        except Exception as e:
-            logger.error(f"❌ Download error for {image_url}: {e}")
-            return None
-
-    async def download_image(self, image_url: str, chapter_url: str) -> Optional[bytes]:
-        """
-        Async wrapper for download_image_sync
-        Use this in async contexts
-        """
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.download_image_sync, image_url, chapter_url)
-
-    async def download_chapter_images(self, chapter_url: str, image_urls: List[str]) -> List[bytes]:
-        """
-        Download all images from a chapter with delays to avoid rate limiting
-        Returns list of image bytes
-        """
-        if not CURL_CFFI_AVAILABLE:
-            logger.error("❌ curl_cffi is required! Install with: pip install curl-cffi")
-            return []
-        
-        images = []
-        total = len(image_urls)
-        
-        logger.info(f"📚 Starting download of {total} images from chapter")
-        
-        for i, url in enumerate(image_urls, 1):
-            # Add delay between images to avoid rate limiting
-            if i > 1:
-                await asyncio.sleep(1.5)  # 1.5 second delay
-            
-            logger.info(f"[{i}/{total}] Downloading image...")
-            image_data = await self.download_image(url, chapter_url)
-            
-            if image_data:
-                images.append(image_data)
-                logger.info(f"✅ [{i}/{total}] Success")
-            else:
-                logger.warning(f"⚠️ [{i}/{total}] Failed to download: {url}")
-        
-        logger.info(f"📦 Downloaded {len(images)}/{total} images successfully")
-        return images
 
     async def get_manga_info(self, manga_id: str) -> Optional[Dict]:
         try:
