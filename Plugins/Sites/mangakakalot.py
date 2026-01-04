@@ -21,6 +21,12 @@ class MangakakalotAPI:
             'Accept-Language': 'en-US,en;q=0.5',
         }
 
+    def convert_webp_to_jpeg(self, url: str) -> str:
+        """Convert .webp URLs to .jpeg"""
+        if url.lower().endswith('.webp'):
+            return url[:-5] + '.jpeg'
+        return url
+
     def parse_upload_hours_ago(self, time_text: str) -> Optional[float]:
         if not time_text:
             return None
@@ -280,7 +286,7 @@ class MangakakalotAPI:
         return []
 
     async def get_chapter_images(self, chapter_url: str) -> Optional[List[str]]:
-        """Get image URLs from chapter page - Simple version like MangaForest"""
+        """Get image URLs from chapter page - converts webp to jpeg"""
         images = []
         async with aiohttp.ClientSession(headers=self.headers) as session:
             try:
@@ -316,10 +322,14 @@ class MangakakalotAPI:
                             else:
                                 src = urljoin(self.base_url, src)
                         
-                        images.append(src.strip())
+                        # Convert webp to jpeg
+                        src = self.convert_webp_to_jpeg(src.strip())
+                        images.append(src)
+                        
+                        logger.debug(f"Image URL: {src}")
                 
                 if images:
-                    logger.info(f"✅ Found {len(images)} images in chapter")
+                    logger.info(f"✅ Found {len(images)} images in chapter (converted webp to jpeg)")
                 else:
                     logger.warning("No images found in chapter")
 
@@ -328,6 +338,46 @@ class MangakakalotAPI:
                 return None
 
         return images if images else None
+
+    async def download_image(self, url: str, save_path: str) -> bool:
+        """Download image from URL and save to file"""
+        try:
+            async with aiohttp.ClientSession(headers=self.headers) as session:
+                async with session.get(url, timeout=60) as resp:
+                    if resp.status == 200:
+                        with open(save_path, 'wb') as f:
+                            f.write(await resp.read())
+                        logger.info(f"✅ Downloaded: {save_path}")
+                        return True
+                    else:
+                        logger.error(f"Failed to download {url}: Status {resp.status}")
+                        return False
+        except Exception as e:
+            logger.error(f"Error downloading {url}: {e}")
+            return False
+
+    async def download_chapter_images(self, chapter_url: str, save_dir: str) -> int:
+        """Download all images from a chapter to a directory"""
+        import os
+        
+        images = await self.get_chapter_images(chapter_url)
+        if not images:
+            logger.error("No images found to download")
+            return 0
+        
+        # Create directory if it doesn't exist
+        os.makedirs(save_dir, exist_ok=True)
+        
+        downloaded = 0
+        for idx, image_url in enumerate(images, 1):
+            filename = f"page_{idx:03d}.jpeg"
+            save_path = os.path.join(save_dir, filename)
+            
+            if await self.download_image(image_url, save_path):
+                downloaded += 1
+        
+        logger.info(f"✅ Downloaded {downloaded}/{len(images)} images to {save_dir}")
+        return downloaded
 
     async def get_manga_info(self, manga_id: str) -> Optional[Dict]:
         try:
