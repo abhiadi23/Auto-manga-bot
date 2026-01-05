@@ -10,6 +10,7 @@ from config import Config
 from Database.database import Seishiro
 from Database.database import Seishiro
 from Plugins.helper import get_styled_text, admin, edit_msg_with_pic
+from Plugins.Settings.admin_settings import *
 
 @Client.on_callback_query(filters.regex("^settings_menu$|^settings_menu_1$"))
 async def settings_main_menu(client, callback_query):
@@ -73,9 +74,6 @@ async def settings_main_menu_2(client, callback_query):
             [InlineKeyboardButton("ᴅᴜᴍᴘ ᴄʜɴʟ", callback_data="header_dump_channel"),
              InlineKeyboardButton("Uᴘʟᴏᴀᴅ ᴄʜɴʟ", callback_data="header_auto_update_channels")
             ],
-            [
-                InlineKeyboardButton("ᴜᴘᴅᴀᴛᴇ ᴛᴇxᴛ", callback_data="set_update_text_btn"),
-            ],
             [InlineKeyboardButton("ᴍᴏɴɪᴛᴏʀ & ғsᴜʙ", callback_data="header_new_items")],
 
             [
@@ -84,7 +82,7 @@ async def settings_main_menu_2(client, callback_query):
             ],
             [
                 InlineKeyboardButton("sᴇᴛ ɪɴᴛᴇʀᴠᴀʟ", callback_data="set_interval_btn"),
-                InlineKeyboardButton("ғsᴜʙ ᴍᴏᴅᴇ", callback_data="set_fsub_btn")
+                InlineKeyboardButton("ғsᴜʙ ᴍᴏᴅᴇ", callback_data="fsub_menu_btn")
             ],
             [
                 InlineKeyboardButton("ᴡᴀᴛᴇʀᴍᴀʀᴋ", callback_data="set_watermark_btn"),
