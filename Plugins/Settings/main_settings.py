@@ -21,7 +21,7 @@ async def settings_main_menu(client, callback_query):
             return
 
         buttons = [
-            [InlineKeyboardButton("• ʀᴇxʙᴏᴛs ᴏғғɪᴄᴀʟ •", callback_data="header_watermark")],
+            [InlineKeyboardButton("• <u>ʀᴇxʙᴏᴛs ᴏғғɪᴄᴀʟ</u> •", callback_data="header_watermark")],
             
             [
                 InlineKeyboardButton("ʙᴀɴɴᴇʀ", callback_data="set_banner_btn"),
@@ -74,7 +74,7 @@ async def settings_main_menu_2(client, callback_query):
             [InlineKeyboardButton("ᴅᴜᴍᴘ ᴄʜɴʟ", callback_data="header_dump_channel"),
              InlineKeyboardButton("Uᴘʟᴏᴀᴅ ᴄʜɴʟ", callback_data="header_auto_update_channels")
             ],
-            [InlineKeyboardButton("ᴍᴏɴɪᴛᴏʀ & ғsᴜʙ", callback_data="header_new_items")],
+            [InlineKeyboardButton("<u>ᴍᴏɴɪᴛᴏʀ & ғsᴜʙ</u>", callback_data="header_new_items")],
 
             [
                 InlineKeyboardButton(f"ᴍᴏɴɪᴛᴏʀ: {'✅ ᴏɴ' if await Seishiro.get_monitoring_status() else '❌ ᴏғғ'}", callback_data="toggle_monitor"),
@@ -93,7 +93,7 @@ async def settings_main_menu_2(client, callback_query):
             [
                 InlineKeyboardButton(f"📡 sᴏᴜʀᴄᴇ: {await Seishiro.get_config('manga_source', 'mangadex')}", callback_data="set_source_btn")
             ],
-            [InlineKeyboardButton("ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟs", callback_data="header_admins")],
+            [InlineKeyboardButton("<u>ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟs</u>", callback_data="header_admins")],
             
             [
                 InlineKeyboardButton("ᴀᴅᴍɪɴs 👮‍♂️", callback_data="admin_menu_btn"),
