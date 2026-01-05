@@ -15,12 +15,24 @@ class MangakakalotAPI:
         self.base_url = "https://mangakakalot.gg"
         self.latest_url = "https://mangakakalot.gg/"
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            'Referer': 'https://mangakakalot.gg/',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
+            "authority": "imgs-2.2xstorage.com",
+            "method": "GET",
+            "scheme": "https",
+            "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            "accept-encoding": "gzip, deflate, br",
+            "accept-language": "en-US,en;q=0.9",
+            "cache-control": "no-cache",
+            "pragma": "no-cache",
+            "referer": "https://www.manganato.gg/",
+            "sec-ch-ua": '"Chromium";v="137", "Not(A)Brand";v="24"',
+            "sec-ch-ua-mobile": "?1",
+            "sec-ch-ua-platform": '"Android"',
+            "sec-fetch-dest": "image",
+            "sec-fetch-mode": "no-cors",
+            "sec-fetch-site": "cross-site",
+            "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36"
         }
-
+        
     def convert_webp_to_jpeg(self, url: str) -> str:
         """Convert .webp URLs to .jpeg"""
         if url.lower().endswith('.webp'):
