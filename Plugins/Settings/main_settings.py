@@ -100,7 +100,10 @@ async def settings_main_menu_2(client, callback_query):
                 InlineKeyboardButton("ʙʀᴏᴀᴅᴄᴀsᴛ 📢", callback_data="broadcast_btn")
             ],
             [
-                InlineKeyboardButton("⬅️ ʙᴀᴄᴋ ⬅️", callback_data="settings_menu_1"),
+                InlineKeyboardButton("Bᴀɴ/ᴜɴʙᴀɴ ❌", callback_data="ban_unban_menu_btn")
+            ],
+            [
+                InlineKeyboardButton("• ʙᴀᴄᴋ", callback_data="settings_menu_1"),
                 InlineKeyboardButton("❄️ ᴄʟᴏsᴇ ❄️", callback_data="stats_close")
             ]
         ]
