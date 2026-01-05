@@ -70,22 +70,18 @@ async def settings_main_menu(client, callback_query):
 async def settings_main_menu_2(client, callback_query):
     try:
         buttons = [
-            [
-                InlineKeyboardButton("ᴅᴜᴍᴘ ᴄʜɴʟ", callback_data="header_dump_channel"),
-                InlinekeyboardButton("Uᴘʟᴏᴀᴅ ᴄʜɴʟ", callback_data="header_auto_update_channels")
+            [InlineKeyboardButton("ᴅᴜᴍᴘ ᴄʜɴʟ", callback_data="header_dump_channel"),
+             InlinekeyboardButton("Uᴘʟᴏᴀᴅ ᴄʜɴʟ", callback_data="header_auto_update_channels")
             ],
-
             [
                 InlineKeyboardButton("ᴜᴘᴅᴀᴛᴇ ᴛᴇxᴛ", callback_data="set_update_text_btn"),
             ],
-
             [InlineKeyboardButton("ᴍᴏɴɪᴛᴏʀ & ғsᴜʙ", callback_data="header_new_items")],
 
             [
                 InlineKeyboardButton(f"ᴍᴏɴɪᴛᴏʀ: {'✅ ᴏɴ' if await Seishiro.get_monitoring_status() else '❌ ᴏғғ'}", callback_data="toggle_monitor"),
                 InlineKeyboardButton("ᴠɪᴇᴡ ᴘʀᴏɢʀᴇss 📊", callback_data="view_progress")
             ],
-
             [
                 InlineKeyboardButton("sᴇᴛ ɪɴᴛᴇʀᴠᴀʟ", callback_data="set_interval_btn"),
                 InlineKeyboardButton("ғsᴜʙ ᴍᴏᴅᴇ", callback_data="set_fsub_btn")
@@ -94,20 +90,17 @@ async def settings_main_menu_2(client, callback_query):
                 InlineKeyboardButton("ᴡᴀᴛᴇʀᴍᴀʀᴋ", callback_data="set_watermark_btn"),
                 InlineKeyboardButton("ᴅᴇʟᴇᴛᴇ ᴛɪᴍᴇʀ", callback_data="set_deltimer_btn")
             ],
-
             [InlineKeyboardButton("ᴍᴀɴɢᴀ sᴏᴜʀᴄᴇ", callback_data="header_source")],
 
             [
                 InlineKeyboardButton(f"📡 sᴏᴜʀᴄᴇ: {await Seishiro.get_config('manga_source', 'mangadex')}", callback_data="set_source_btn")
             ],
-
             [InlineKeyboardButton("ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟs", callback_data="header_admins")],
             
             [
                 InlineKeyboardButton("ᴀᴅᴍɪɴs 👮‍♂️", callback_data="admin_menu_btn"),
                 InlineKeyboardButton("ʙʀᴏᴀᴅᴄᴀsᴛ 📢", callback_data="broadcast_btn")
             ],
-
             [
                 InlineKeyboardButton("⬅️ ʙᴀᴄᴋ ⬅️", callback_data="settings_menu_1"),
                 InlineKeyboardButton("❄️ ᴄʟᴏsᴇ ❄️", callback_data="stats_close")
@@ -121,7 +114,7 @@ async def settings_main_menu_2(client, callback_query):
             "<blockquote><b>⚙️ sᴇᴛᴛɪɴɢs ᴍᴇɴᴜ (ᴘᴀɢᴇ 2/2)</b></blockquote>\n\n"
             f"<b>ᴄᴜʀʀᴇɴᴛ ᴄʜᴀɴɴᴇʟs:</b>\n"
             f"🗑️ ᴅᴜᴍᴘ: `{dump_ch if dump_ch else 'ɴᴏᴛ sᴇᴛ'}`\n"
-            f"📢 ᴜᴘᴅᴀᴛᴇ: `{update_ch if update_ch else 'ɴᴏᴛ sᴇᴛ'}`\n\n"
+            f"📢 Uᴘʟᴏᴀᴅ: `{update_ch if update_ch else 'ɴᴏᴛ sᴇᴛ'}`\n\n"
             "<blockquote>ᴜsᴇ ᴀʀʀᴏᴡs ᴛᴏ ɴᴀᴠɪɢᴀᴛᴇ ʙᴇᴛᴡᴇᴇɴ ᴘᴀɢᴇs.</blockquote>"
         )
 
