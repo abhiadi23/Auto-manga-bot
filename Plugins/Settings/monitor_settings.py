@@ -10,6 +10,7 @@ from Database.database import Seishiro
 from Plugins.helper import get_styled_text, user_states, edit_msg_with_pic
 from Plugins.Settings.input_helper import timeout_handler
 from Plugins.Settings.main_settings import settings_main_menu_2
+from Plugins.Settings.admin_settings import *
 import asyncio
 import logging
 
@@ -87,79 +88,6 @@ async def set_int_custom_cb(client, callback_query):
     
     asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_interval"))
 
-
-
-@Client.on_callback_query(filters.regex("^set_fsub_btn$"))
-async def fsub_main_menu(client, callback_query):
-    channels = await Seishiro.get_fsub_channels()
-    
-    text = get_styled_text(
-        f"<b>🛡 {to_small_caps('FSub Mode Settings')}</b>\n\n"
-        f"<b>{to_small_caps('Active FSub Channels:')}</b> {len(channels)}"
-    )
-    
-    buttons = [
-        [
-            InlineKeyboardButton(f"➕ {to_small_caps('add channel')}", callback_data="fsub_add"),
-            InlineKeyboardButton(f"➖ {to_small_caps('remove channel')}", callback_data="fsub_remove")
-        ],
-        [
-            InlineKeyboardButton(f"📋 {to_small_caps('list channels')}", callback_data="fsub_list")
-        ],
-        [
-            InlineKeyboardButton(f"⬅ {to_small_caps('back')}", callback_data="settings_menu_2")
-        ]
-    ]
-    
-    await edit_msg_with_pic(
-        Message=callback_query.message,
-        text=text,
-        buttons=InlineKeyboardMarkup(buttons)
-    )
-
-@Client.on_callback_query(filters.regex("^fsub_add$"))
-async def fsub_add_cb(client, callback_query):
-    text = get_styled_text(
-        f"<b>➕ {to_small_caps('Add FSub Channel')}</b>\n\n"
-        f"{to_small_caps('Send Channel ID (-100...).')}\n"
-        f"<i>{to_small_caps('Bot must be Admin!')}</i>\n"
-        f"<i>{to_small_caps('(Auto-close in 30s)')}</i>"
-    )
-    user_states[callback_query.from_user.id] = {"state": "waiting_fsub_id"}
-    
-    buttons = [[InlineKeyboardButton(f"❌ {to_small_caps('cancel')}", callback_data="cancel_input")]]
-    await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
-    
-    asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_fsub_id"))
-
-@Client.on_callback_query(filters.regex("^fsub_list$"))
-async def fsub_list_cb(client, callback_query):
-    channels = await Seishiro.get_fsub_channels()
-    if not channels:
-        await callback_query.answer(to_small_caps("No FSub channels set."), show_alert=True)
-        return
-        
-    msg = f"<b>📋 {to_small_caps('FSub Channels:')}</b>\n\n"
-    for ch in channels:
-        mode = await Seishiro.get_channel_mode(ch)
-        msg += f"• <code>{ch}</code> | {to_small_caps('Mode:')} {mode}\n"
-        
-    buttons = [[InlineKeyboardButton(f"⬅ {to_small_caps('back')}", callback_data="set_fsub_btn")]]
-    await edit_msg_with_pic(callback_query.message, get_styled_text(msg), InlineKeyboardMarkup(buttons))
-
-@Client.on_callback_query(filters.regex("^fsub_remove$"))
-async def fsub_remove_cb(client, callback_query):
-    text = get_styled_text(
-        f"<b>➖ {to_small_caps('Remove FSub Channel')}</b>\n\n"
-        f"{to_small_caps('Send Channel ID to remove.')}\n"
-        f"<i>{to_small_caps('(Auto-close in 30s)')}</i>"
-    )
-    user_states[callback_query.from_user.id] = {"state": "waiting_fsub_rem_id"}
-    buttons = [[InlineKeyboardButton(f"❌ {to_small_caps('cancel')}", callback_data="cancel_input")]]
-    await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
-    asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_fsub_rem_id"))
-
-
 @Client.on_callback_query(filters.regex("^set_watermark_btn$"))
 async def watermark_menu(client, callback_query):
     wm = await Seishiro.get_watermark()
@@ -183,6 +111,9 @@ async def watermark_menu(client, callback_query):
         ],
         [
             InlineKeyboardButton(to_small_caps("delete watermark"), callback_data="wm_delete")
+        ],
+        [
+            InlineKeyboardButton(to_small_caps("view watermark"), callback_data="admin_view_wm_btn")
         ],
         [
             InlineKeyboardButton(f"⬅ {to_small_caps('back')}", callback_data="settings_menu_2")
