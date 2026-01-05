@@ -160,7 +160,7 @@ async def view_wm_cb(client, callback_query):
         else:
             text = "<b>💧 ᴡᴀᴛᴇʀᴍᴀʀᴋ:</b> ɴᴏᴛ sᴇᴛ"
             
-        buttons = [[InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="admin_menu_btn")]]
+        buttons = [[InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="settings_menu_2")]]
         await edit_msg_with_pic(callback_query.message, get_styled_text(text), InlineKeyboardMarkup(buttons))
     except Exception as e:
         await callback_query.answer(f"ᴇʀʀᴏʀ: {e}", show_alert=True)
@@ -201,46 +201,7 @@ async def broadcast_btn_cb(client, callback_query):
     buttons = [[InlineKeyboardButton("❌ ᴄᴀɴᴄᴇʟ", callback_data="cancel_input")]]
     await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
     asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_broadcast_msg"))
-
-@Client.on_callback_query(filters.regex("^admin_channels_btn$"))
-async def admin_channels_cb(client, callback_query):
-    try:
-        dump_id = await Seishiro.get_config("dump_channel")
-        update_id = await Seishiro.get_default_channel()
-        auto_chs = await Seishiro.get_auto_update_channels()
-
-        async def get_name(cid):
-            if not cid: return "ɴᴏᴛ sᴇᴛ"
-            try:
-                chat = await client.get_chat(int(cid))
-                return f"{chat.title} (`{cid}`)"
-            except:
-                return f"ᴜɴᴋɴᴏᴡɴ (`{cid}`)"
-
-        dump_str = await get_name(dump_id)
-        update_str = await get_name(update_id)
-        
-        auto_text = ""
-        if auto_chs:
-            for c in auto_chs:
-                db_title = c.get('title', 'ᴜɴᴋɴᴏᴡɴ')
-                cid = c.get('_id')
-                auto_text += f"\n• {db_title} (`{cid}`)"
-        else:
-            auto_text = "\n• ɴᴏɴᴇ"
-
-        text = get_styled_text(
-            f"<b>📺 ᴄʜᴀɴɴᴇʟ ᴄᴏɴғɪɢᴜʀᴀᴛɪᴏɴ</b>\n\n"
-            f"<b>🗑️ ᴅᴜᴍᴘ ᴄʜᴀɴɴᴇʟ:</b>\n➥ {dump_str}\n\n"
-            f"<b>📢 ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ:</b>\n➥ {update_str}\n\n"
-            f"<b>🤖 ᴀᴜᴛᴏ-ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟs:</b>{auto_text}"
-        )
-        
-        buttons = [[InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="admin_menu_btn")]]
-        await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
-    except Exception as e:
-        await callback_query.answer(f"ᴇʀʀᴏʀ: {e}", show_alert=True)
-
+    
 # ====================== BAN / UNBAN SUB-MENU ======================
 @Client.on_callback_query(filters.regex("^ban_unban_menu_btn$"))
 async def ban_unban_menu_cb(client, callback_query):
@@ -258,7 +219,7 @@ async def ban_unban_menu_cb(client, callback_query):
         [InlineKeyboardButton("🚫 ʙᴀɴ ᴜsᴇʀ", callback_data="admin_ban_btn")],
         [InlineKeyboardButton("✅ ᴜɴʙᴀɴ ᴜsᴇʀ", callback_data="admin_unban_btn")],
         [InlineKeyboardButton("📋 ʟɪsᴛ ʙᴀɴɴᴇᴅ ᴜsᴇʀs", callback_data="admin_list_banned_btn")],
-        [InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="admin_menu_btn")]
+        [InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="settings_menu_2")]
     ]
     
     await edit_msg_with_pic(
@@ -285,7 +246,7 @@ async def fsub_menu_cb(client, callback_query):
         [InlineKeyboardButton("📋 ᴠɪᴇᴡ & ᴛᴏɢɢʟᴇ ᴄʜᴀɴɴᴇʟs", callback_data="fsub_config_btn")],
         [InlineKeyboardButton("➕ ᴀᴅᴅ ᴄʜᴀɴɴᴇʟ", callback_data="add_fsub_btn")],
         [InlineKeyboardButton("➖ ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ", callback_data="rem_fsub_btn")],
-        [InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="admin_menu_btn")]
+        [InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="settings_menu_2")]
     ]
     
     await edit_msg_with_pic(
