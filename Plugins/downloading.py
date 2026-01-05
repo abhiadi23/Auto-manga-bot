@@ -35,14 +35,39 @@ class Downloader:
             await self.session.close()
             await asyncio.sleep(0.25)
 
-    async def download_image(self, url: str, output_path: Path, max_retries: int = 3, headers: dict = None) -> bool:
+    async def download_image(self, url: str, output_path: Path, max_retries: int = 3, headers: dict = None, file_id: str = None, get_file_callback=None) -> bool:
         for attempt in range(max_retries):
             try:
+                # If file_id and callback provided, refresh the file reference
+                if file_id and get_file_callback and attempt > 0:
+                    try:
+                        logger.info(f"Refreshing file reference for {file_id} (attempt {attempt + 1})")
+                        url = await get_file_callback(file_id)
+                        if not url:
+                            logger.error("Failed to refresh file reference")
+                            return False
+                    except Exception as e:
+                        logger.error(f"Error refreshing file reference: {e}")
+                        return False
+                
                 request_headers = headers if headers else self.session.headers
                 async with self.session.get(url, headers=request_headers) as response:
                     if response.status == 429:
                         await asyncio.sleep(2 ** attempt)
                         continue
+                    
+                    # Handle FILE_REFERENCE_EXPIRED (400) error
+                    if response.status == 400:
+                        error_text = await response.text()
+                        if "FILE_REFERENCE_EXPIRED" in error_text or "file reference" in error_text.lower():
+                            logger.warning(f"File reference expired, retrying with fresh reference (attempt {attempt + 1})")
+                            if file_id and get_file_callback:
+                                await asyncio.sleep(1)
+                                continue
+                            else:
+                                logger.error("Cannot refresh file reference - no callback provided")
+                                return False
+                    
                     response.raise_for_status()
 
                     size = 0
@@ -54,13 +79,21 @@ class Downloader:
                                 return False
                             await f.write(chunk)
                     return True
+            except aiohttp.ClientResponseError as e:
+                if e.status == 400 and file_id and get_file_callback:
+                    logger.warning(f"HTTP 400 error, attempting to refresh file reference (attempt {attempt + 1})")
+                    await asyncio.sleep(1)
+                    continue
+                logger.error(f"Download failed (attempt {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)
             except Exception as e:
                 logger.error(f"Download failed (attempt {attempt + 1}): {e}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(2 ** attempt)
         return False
 
-    async def download_images(self, urls: List[str], output_dir: Path, progress_callback=None, headers: dict = None) -> bool:
+    async def download_images(self, urls: List[str], output_dir: Path, progress_callback=None, headers: dict = None, file_ids: List[str] = None, get_file_callback=None) -> bool:
         output_dir.mkdir(parents=True, exist_ok=True)
         batch_size = 10
         successful = 0
@@ -69,7 +102,8 @@ class Downloader:
             tasks = []
             for j, url in enumerate(urls[i:i + batch_size], i + 1):
                 output_path = output_dir / f"{j:03d}.jpg"
-                tasks.append(self.download_image(url, output_path, headers=headers))
+                file_id = file_ids[i + j - 1] if file_ids and len(file_ids) > i + j - 1 else None
+                tasks.append(self.download_image(url, output_path, headers=headers, file_id=file_id, get_file_callback=get_file_callback))
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
             successful += sum(1 for r in results if r is True)
@@ -394,10 +428,10 @@ class Downloader:
             logger.error(f"PDF v2 failed: {e}", exc_info=True)
             return None
 
-    async def download_cover(self, cover_url: str, output_path: Path, headers: dict = None) -> bool:
+    async def download_cover(self, cover_url: str, output_path: Path, headers: dict = None, file_id: str = None, get_file_callback=None) -> bool:
         if not cover_url:
             return False
-        return await self.download_image(cover_url, output_path, headers=headers)
+        return await self.download_image(cover_url, output_path, headers=headers, file_id=file_id, get_file_callback=get_file_callback)
 
 
 # Rexbots
