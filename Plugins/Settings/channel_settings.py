@@ -17,23 +17,26 @@ logger = logging.getLogger(__name__)
 
 @Client.on_callback_query(filters.regex("^header_auto_update_channels$"))
 async def auc_menu(client, callback_query):
-    text = get_styled_text("Your Auto Update Channel")
+    text = get_styled_text("ʏᴏᴜʀ ᴀᴜᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ")
     
     buttons = [
         [
-            InlineKeyboardButton("+ add +", callback_data="auc_add"),
-            InlineKeyboardButton("- remove all -", callback_data="auc_rem_all")
+            InlineKeyboardButton("+ ᴀᴅᴅ +", callback_data="auc_add"),
+            InlineKeyboardButton("- ʀᴇᴍᴏᴠᴇ ᴀʟʟ -", callback_data="auc_rem_all")
         ],
         [
-            InlineKeyboardButton("- remove channel -", callback_data="auc_rem_channel")
+            InlineKeyboardButton("- ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ -", callback_data="auc_rem_channel")
         ],
         [
-            InlineKeyboardButton("refresh", callback_data="header_auto_update_channels"),
-            InlineKeyboardButton("import", callback_data="auc_import")
+            InlineKeyboardButton("ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟs 👁", callback_data="auc_view_channels")
         ],
         [
-            InlineKeyboardButton("⬅ back", callback_data="settings_menu"),
-            InlineKeyboardButton("* close *", callback_data="stats_close")
+            InlineKeyboardButton("ʀᴇғʀᴇsʜ", callback_data="header_auto_update_channels"),
+            InlineKeyboardButton("ɪᴍᴘᴏʀᴛ", callback_data="auc_import")
+        ],
+        [
+            InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="settings_menu"),
+            InlineKeyboardButton("* ᴄʟᴏsᴇ *", callback_data="stats_close")
         ]
     ]
     
@@ -46,14 +49,14 @@ async def auc_menu(client, callback_query):
 @Client.on_callback_query(filters.regex("^auc_add$"))
 async def auc_add_cb(client, callback_query):
     text = get_styled_text(
-        "<b>➕ Add Auto Update Channel</b>\n\n"
-        "Send the Channel ID (e.g. -100xxx) to add.\n"
-        "<i>Bot must be admin in the channel to verify!</i>\n"
-        "<i>(Auto-close in 30s)</i>"
+        "<b>➕ ᴀᴅᴅ ᴀᴜᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+        "sᴇɴᴅ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. -100xxx) ᴛᴏ ᴀᴅᴅ.\n"
+        "<i>ʙᴏᴛ ᴍᴜsᴛ ʙᴇ ᴀᴅᴍɪɴ ɪɴ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴠᴇʀɪғʏ!</i>\n"
+        "<i>(ᴀᴜᴛᴏ-ᴄʟᴏsᴇ ɪɴ 30s)</i>"
     )
     user_states[callback_query.from_user.id] = {"state": "waiting_auc_id"}
     
-    buttons = [[InlineKeyboardButton("❌ cancel", callback_data="cancel_input")]]
+    buttons = [[InlineKeyboardButton("❌ ᴄᴀɴᴄᴇʟ", callback_data="cancel_input")]]
     await callback_query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
     
     asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_auc_id"))
@@ -61,40 +64,64 @@ async def auc_add_cb(client, callback_query):
 @Client.on_callback_query(filters.regex("^auc_rem_all$"))
 async def auc_rem_all_cb(client, callback_query):
     await Seishiro.clear_auto_update_channels()
-    await callback_query.answer("✅ All channels removed!", show_alert=True)
-    await auc_menu(client, callback_query) # Refresh menu
+    await callback_query.answer("✅ ᴀʟʟ ᴄʜᴀɴɴᴇʟs ʀᴇᴍᴏᴠᴇᴅ!", show_alert=True)
+    await auc_menu(client, callback_query)
 
 @Client.on_callback_query(filters.regex("^auc_import$"))
 async def auc_import_cb(client, callback_query):
-    await callback_query.answer("Import feature coming soon!", show_alert=True)
+    await callback_query.answer("ɪᴍᴘᴏʀᴛ ғᴇᴀᴛᴜʀᴇ ᴄᴏᴍɪɴɢ sᴏᴏɴ!", show_alert=True)
 
 
 @Client.on_callback_query(filters.regex("^auc_rem_channel$"))
 async def auc_rem_channel_cb(client, callback_query):
     text = get_styled_text(
-        "<b>➖ Remove Auto Update Channel</b>\n\n"
-        "Send the Channel ID (e.g. -100xxx) to remove.\n"
-        "<i>(Auto-close in 30s)</i>"
+        "<b>➖ ʀᴇᴍᴏᴠᴇ ᴀᴜᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+        "sᴇɴᴅ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. -100xxx) ᴛᴏ ʀᴇᴍᴏᴠᴇ.\n"
+        "<i>(ᴀᴜᴛᴏ-ᴄʟᴏsᴇ ɪɴ 30s)</i>"
     )
     user_states[callback_query.from_user.id] = {"state": "waiting_auc_rem_id"}
     
-    buttons = [[InlineKeyboardButton("❌ cancel", callback_data="cancel_input")]]
+    buttons = [[InlineKeyboardButton("❌ ᴄᴀɴᴄᴇʟ", callback_data="cancel_input")]]
     await callback_query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
     
     asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_auc_rem_id"))
 
 
+@Client.on_callback_query(filters.regex("^auc_view_channels$"))
+async def auc_view_channels_cb(client, callback_query):
+    try:
+        auto_chs = await Seishiro.get_auto_update_channels()
+        
+        if not auto_chs:
+            text = get_styled_text("<b>🤖 ᴀᴜᴛᴏ-ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟs</b>\n\n➥ ɴᴏ ᴄʜᴀɴɴᴇʟs ғᴏᴜɴᴅ")
+        else:
+            text = get_styled_text("<b>🤖 ᴀᴜᴛᴏ-ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟs</b>\n\n")
+            for c in auto_chs:
+                db_title = c.get('title', 'ᴜɴᴋɴᴏᴡɴ')
+                cid = c.get('_id')
+                try:
+                    chat = await client.get_chat(int(cid))
+                    text += f"• {chat.title}\n  ɪᴅ: `{cid}`\n\n"
+                except:
+                    text += f"• {db_title}\n  ɪᴅ: `{cid}` (ɪɴᴠᴀʟɪᴅ)\n\n"
+        
+        buttons = [[InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="header_auto_update_channels")]]
+        await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
+    except Exception as e:
+        await callback_query.answer(f"ᴇʀʀᴏʀ: {e}", show_alert=True)
+
+
 @Client.on_callback_query(filters.regex("^set_channel_btn$"))
 async def set_channel_cb(client, callback_query):
     text = get_styled_text(
-        "<b>📢 Set Upload Channel</b>\n\n"
-        "Send the Channel ID (-100...) where manga chapters will be uploaded.\n"
-        "<i>Make sure the bot is Admin there!</i>\n"
-        "<i>(Auto-close in 30s)</i>"
+        "<b>📢 sᴇᴛ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+        "sᴇɴᴅ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ɪᴅ (-100...) ᴡʜᴇʀᴇ ᴍᴀɴɢᴀ ᴄʜᴀᴘᴛᴇʀs ᴡɪʟʟ ʙᴇ ᴜᴘʟᴏᴀᴅᴇᴅ.\n"
+        "<i>ᴍᴀᴋᴇ sᴜʀᴇ ᴛʜᴇ ʙᴏᴛ ɪs ᴀᴅᴍɪɴ ᴛʜᴇʀᴇ!</i>\n"
+        "<i>(ᴀᴜᴛᴏ-ᴄʟᴏsᴇ ɪɴ 30s)</i>"
     )
     user_states[callback_query.from_user.id] = {"state": "waiting_channel"}
     
-    buttons = [[InlineKeyboardButton("❌ cancel", callback_data="cancel_input")]]
+    buttons = [[InlineKeyboardButton("❌ ᴄᴀɴᴄᴇʟ", callback_data="cancel_input")]]
     await callback_query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
     
     asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_channel"))
@@ -102,21 +129,24 @@ async def set_channel_cb(client, callback_query):
 @Client.on_callback_query(filters.regex("^(header_dump_channel|set_dump_channel_btn)$"))
 async def dump_channel_menu(client, callback_query):
     dump_id = await Seishiro.get_config("dump_channel")
-    status = f"<code>{dump_id}</code>" if dump_id else "None"
+    status = f"<code>{dump_id}</code>" if dump_id else "ɴᴏɴᴇ"
     
     text = (
-        f"<b>➥ Dump Channel</b>\n"
-        f"<b>➥ Your Value: {status}</b>"
+        f"<b>➥ ᴅᴜᴍᴘ ᴄʜᴀɴɴᴇʟ</b>\n"
+        f"<b>➥ ʏᴏᴜʀ ᴠᴀʟᴜᴇ: {status}</b>"
     )
     
     buttons = [
         [
-            InlineKeyboardButton("set / change", callback_data="set_dump_input"),
-            InlineKeyboardButton("delete", callback_data="rem_dump_channel")
+            InlineKeyboardButton("sᴇᴛ / ᴄʜᴀɴɢᴇ", callback_data="set_dump_input"),
+            InlineKeyboardButton("ᴅᴇʟᴇᴛᴇ", callback_data="rem_dump_channel")
         ],
         [
-            InlineKeyboardButton("⬅ back", callback_data="settings_menu"),
-            InlineKeyboardButton("* close *", callback_data="stats_close")
+            InlineKeyboardButton("ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ 👁", callback_data="view_dump_channel")
+        ],
+        [
+            InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="settings_menu"),
+            InlineKeyboardButton("* ᴄʟᴏsᴇ *", callback_data="stats_close")
         ]
     ]
     
@@ -137,16 +167,16 @@ async def dump_channel_menu(client, callback_query):
 @Client.on_callback_query(filters.regex("^set_dump_input$"))
 async def set_dump_input_cb(client, callback_query):
     text = get_styled_text(
-        "<b>🗑️ Set Dump Channel</b>\n\n"
-        "Send the Channel ID for the Dump Channel.\n"
-        "<i>Send ID now...</i>\n"
-        "<i>(Auto-close in 30s)</i>"
+        "<b>🗑️ sᴇᴛ ᴅᴜᴍᴘ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+        "sᴇɴᴅ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ɪᴅ ғᴏʀ ᴛʜᴇ ᴅᴜᴍᴘ ᴄʜᴀɴɴᴇʟ.\n"
+        "<i>sᴇɴᴅ ɪᴅ ɴᴏᴡ...</i>\n"
+        "<i>(ᴀᴜᴛᴏ-ᴄʟᴏsᴇ ɪɴ 30s)</i>"
     )
     user_states[callback_query.from_user.id] = {"state": "waiting_dump_channel"}
     
     buttons = [
-        [InlineKeyboardButton("❌ cancel", callback_data="cancel_input")],
-        [InlineKeyboardButton("⬅ back", callback_data="header_dump_channel")]
+        [InlineKeyboardButton("❌ ᴄᴀɴᴄᴇʟ", callback_data="cancel_input")],
+        [InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="header_dump_channel")]
     ]
     await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
     
@@ -155,34 +185,123 @@ async def set_dump_input_cb(client, callback_query):
 @Client.on_callback_query(filters.regex("^rem_dump_channel$"))
 async def rem_dump_channel_cb(client, callback_query):
     await Seishiro.set_config("dump_channel", None)
-    await callback_query.answer("Dump Channel Removed!", show_alert=True)
+    await callback_query.answer("ᴅᴜᴍᴘ ᴄʜᴀɴɴᴇʟ ʀᴇᴍᴏᴠᴇᴅ!", show_alert=True)
     await dump_channel_menu(client, callback_query)
 
 
-@Client.on_message(filters.command("set_chnl") & filters.private & admin)
-async def set_channel_cmd(client, message):
-    if len(message.command) != 2:
-        return await message.reply("usage: /set_chnl <channel_id>")
+@Client.on_callback_query(filters.regex("^view_dump_channel$"))
+async def view_dump_channel_cb(client, callback_query):
     try:
-        cid = int(message.command[1])
-        try:
-             chat = await client.get_chat(cid)
-        except:
-             return await message.reply("❌ bot cannot access this channel.")
-        await Seishiro.set_default_channel(cid)
-        await message.reply(f"<blockquote><b>✅ upload channel set: {cid}</b></blockquote>", parse_mode=enums.ParseMode.HTML)
-    except ValueError:
-        await message.reply("❌ invalid id")
+        dump_id = await Seishiro.get_config("dump_channel")
+        
+        if not dump_id:
+            text = get_styled_text("<b>🗑️ ᴅᴜᴍᴘ ᴄʜᴀɴɴᴇʟ</b>\n\n➥ ɴᴏᴛ sᴇᴛ")
+        else:
+            try:
+                chat = await client.get_chat(int(dump_id))
+                text = get_styled_text(
+                    f"<b>🗑️ ᴅᴜᴍᴘ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+                    f"<b>ᴄʜᴀɴɴᴇʟ:</b> {chat.title}\n"
+                    f"<b>ɪᴅ:</b> `{dump_id}`"
+                )
+            except:
+                text = get_styled_text(
+                    f"<b>🗑️ ᴅᴜᴍᴘ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+                    f"<b>ɪᴅ:</b> `{dump_id}`\n"
+                    f"<i>(ᴄᴀɴɴᴏᴛ ᴀᴄᴄᴇss ᴄʜᴀɴɴᴇʟ)</i>"
+                )
+        
+        buttons = [[InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="header_dump_channel")]]
+        await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
+    except Exception as e:
+        await callback_query.answer(f"ᴇʀʀᴏʀ: {e}", show_alert=True)
 
-@Client.on_message(filters.command("view_chnl") & filters.private & admin)
-async def view_channel_cmd(client, message):
-    cid = await Seishiro.get_default_channel()
-    await message.reply(f"<blockquote><b>📺 Upload Channel: {cid}</b></blockquote>", parse_mode=enums.ParseMode.HTML)
 
-@Client.on_message(filters.command("rem_chnl") & filters.private & admin)
-async def rem_channel_cmd(client, message):
+@Client.on_callback_query(filters.regex("^set_chnl_btn$"))
+async def set_chnl_btn_cb(client, callback_query):
+    text = get_styled_text(
+        "<b>📢 sᴇᴛ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+        "sᴇɴᴅ ᴛʜᴇ <b>ᴄʜᴀɴɴᴇʟ ɪᴅ</b> (-100...).\n"
+        "<i>(ᴀᴜᴛᴏ-ᴄʟᴏsᴇ ɪɴ 30s)</i>"
+    )
+    user_states[callback_query.from_user.id] = {"state": "waiting_upload_channel"}
+    buttons = [[InlineKeyboardButton("❌ ᴄᴀɴᴄᴇʟ", callback_data="cancel_input")]]
+    await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
+    asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_upload_channel"))
+
+
+@Client.on_callback_query(filters.regex("^view_chnl_btn$"))
+async def view_chnl_btn_cb(client, callback_query):
+    try:
+        cid = await Seishiro.get_default_channel()
+        
+        if not cid:
+            text = get_styled_text("<b>📺 ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n➥ ɴᴏᴛ sᴇᴛ")
+        else:
+            try:
+                chat = await client.get_chat(int(cid))
+                text = get_styled_text(
+                    f"<b>📺 ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+                    f"<b>ᴄʜᴀɴɴᴇʟ:</b> {chat.title}\n"
+                    f"<b>ɪᴅ:</b> `{cid}`"
+                )
+            except:
+                text = get_styled_text(
+                    f"<b>📺 ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+                    f"<b>ɪᴅ:</b> `{cid}`\n"
+                    f"<i>(ᴄᴀɴɴᴏᴛ ᴀᴄᴄᴇss ᴄʜᴀɴɴᴇʟ)</i>"
+                )
+        
+        buttons = [[InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="settings_menu")]]
+        await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
+    except Exception as e:
+        await callback_query.answer(f"ᴇʀʀᴏʀ: {e}", show_alert=True)
+
+
+@Client.on_callback_query(filters.regex("^rem_chnl_btn$"))
+async def rem_chnl_btn_cb(client, callback_query):
     await Seishiro.set_default_channel(None)
-    await message.reply(f"<blockquote><b>✅ Upload Channel Removed</b></blockquote>", parse_mode=enums.ParseMode.HTML)
+    await callback_query.answer("✅ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ ʀᴇᴍᴏᴠᴇᴅ", show_alert=True)
+
+
+@Client.on_callback_query(filters.regex("^admin_channels_btn$"))
+async def admin_channels_cb(client, callback_query):
+    try:
+        dump_id = await Seishiro.get_config("dump_channel")
+        update_id = await Seishiro.get_default_channel()
+        auto_chs = await Seishiro.get_auto_update_channels()
+
+        async def get_name(cid):
+            if not cid: return "ɴᴏᴛ sᴇᴛ"
+            try:
+                chat = await client.get_chat(int(cid))
+                return f"{chat.title} (`{cid}`)"
+            except:
+                return f"ᴜɴᴋɴᴏᴡɴ (`{cid}`)"
+
+        dump_str = await get_name(dump_id)
+        update_str = await get_name(update_id)
+        
+        auto_text = ""
+        if auto_chs:
+            for c in auto_chs:
+                db_title = c.get('title', 'ᴜɴᴋɴᴏᴡɴ')
+                cid = c.get('_id')
+                auto_text += f"\n• {db_title} (`{cid}`)"
+        else:
+            auto_text = "\n• ɴᴏɴᴇ"
+
+        text = get_styled_text(
+            f"<b>📺 ᴄʜᴀɴɴᴇʟ ᴄᴏɴғɪɢᴜʀᴀᴛɪᴏɴ</b>\n\n"
+            f"<b>🗑️ ᴅᴜᴍᴘ ᴄʜᴀɴɴᴇʟ:</b>\n➥ {dump_str}\n\n"
+            f"<b>📢 ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:</b>\n➥ {update_str}\n\n"
+            f"<b>🤖 ᴀᴜᴛᴏ-ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟs:</b>{auto_text}"
+        )
+        
+        buttons = [[InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="admin_menu_btn")]]
+        await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
+    except Exception as e:
+        await callback_query.answer(f"ᴇʀʀᴏʀ: {e}", show_alert=True)
 
 
 # Rexbots
