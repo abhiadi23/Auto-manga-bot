@@ -241,6 +241,92 @@ async def admin_channels_cb(client, callback_query):
     except Exception as e:
         await callback_query.answer(f"ᴇʀʀᴏʀ: {e}", show_alert=True)
 
+# ====================== BAN / UNBAN SUB-MENU ======================
+@Client.on_callback_query(filters.regex("^ban_unban_menu_btn$"))
+async def ban_unban_menu_cb(client, callback_query):
+    if callback_query.from_user.id != Config.USER_ID and not await Seishiro.is_admin(callback_query.from_user.id):
+        await callback_query.answer("❌ ᴀᴅᴍɪɴ ᴏɴʟʏ ᴀʀᴇᴀ!", show_alert=True)
+        return
+
+    text = get_styled_text(
+        "<b>🚫 ʙᴀɴ / ᴜɴʙᴀɴ ᴜsᴇʀs</b>\n\n"
+        "ᴍᴀɴᴀɢᴇ ᴜsᴇʀ ᴀᴄᴄᴇss ᴛᴏ ᴛʜᴇ ʙᴏᴛ.\n"
+        "ʏᴏᴜ ᴄᴀɴ ʙᴀɴ ᴏʀ ᴜɴʙᴀɴ ᴀɴʏ ᴜsᴇʀ ʙʏ ᴛʜᴇɪʀ ᴜsᴇʀ ɪᴅ."
+    )
+    
+    buttons = [
+        [InlineKeyboardButton("🚫 ʙᴀɴ ᴜsᴇʀ", callback_data="admin_ban_btn")],
+        [InlineKeyboardButton("✅ ᴜɴʙᴀɴ ᴜsᴇʀ", callback_data="admin_unban_btn")],
+        [InlineKeyboardButton("📋 ʟɪsᴛ ʙᴀɴɴᴇᴅ ᴜsᴇʀs", callback_data="admin_list_banned_btn")],
+        [InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="admin_menu_btn")]
+    ]
+    
+    await edit_msg_with_pic(
+        message=callback_query.message,
+        text=text,
+        buttons=InlineKeyboardMarkup(buttons)
+    )
+
+
+# ====================== FSUB SUB-MENU ======================
+@Client.on_callback_query(filters.regex("^fsub_menu_btn$"))
+async def fsub_menu_cb(client, callback_query):
+    if callback_query.from_user.id != Config.USER_ID and not await Seishiro.is_admin(callback_query.from_user.id):
+        await callback_query.answer("❌ ᴀᴅᴍɪɴ ᴏɴʟʏ ᴀʀᴇᴀ!", show_alert=True)
+        return
+
+    text = get_styled_text(
+        "<b>📢 ғᴏʀᴄᴇ sᴜʙsᴄʀɪʙᴇ sᴇᴛᴛɪɴɢs</b>\n\n"
+        "ᴍᴀɴᴀɢᴇ ғᴏʀᴄᴇᴅ ᴄʜᴀɴɴᴇʟ sᴜʙsᴄʀɪᴘᴛɪᴏɴs ғᴏʀ ᴀʟʟ ᴜsᴇʀs.\n"
+        "ᴜsᴇʀs ᴍᴜsᴛ ᴊᴏɪɴ ᴀʟʟ ᴀᴅᴅᴇᴅ ᴄʜᴀɴɴᴇʟs ᴛᴏ ᴜsᴇ ᴛʜᴇ ʙᴏᴛ."
+    )
+    
+    buttons = [
+        [InlineKeyboardButton("📋 ᴠɪᴇᴡ & ᴛᴏɢɢʟᴇ ᴄʜᴀɴɴᴇʟs", callback_data="fsub_config_btn")],
+        [InlineKeyboardButton("➕ ᴀᴅᴅ ᴄʜᴀɴɴᴇʟ", callback_data="add_fsub_btn")],
+        [InlineKeyboardButton("➖ ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ", callback_data="rem_fsub_btn")],
+        [InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="admin_menu_btn")]
+    ]
+    
+    await edit_msg_with_pic(
+        message=callback_query.message,
+        text=text,
+        buttons=InlineKeyboardMarkup(buttons)
+    )
+
+
+# ====================== LIST BANNED USERS (EXTRA FEATURE) ======================
+@Client.on_callback_query(filters.regex("^admin_list_banned_btn$"))
+async def list_banned_users_cb(client, callback_query):
+    if callback_query.from_user.id != Config.USER_ID and not await Seishiro.is_admin(callback_query.from_user.id):
+        await callback_query.answer("❌ ᴀᴅᴍɪɴ ᴏɴʟʏ ᴀʀᴇᴀ!", show_alert=True)
+        return
+
+    try:
+        banned_users = await Seishiro.get_banned_users()  # Assuming you have this method in DB
+        if not banned_users:
+            list_text = "<b>🚫 ʙᴀɴɴᴇᴅ ᴜsᴇʀs:</b>\n\nɴᴏ ᴜsᴇʀs ᴀʀᴇ ʙᴀɴɴᴇᴅ ʏᴇᴛ."
+        else:
+            list_text = "<b>🚫 ʙᴀɴɴᴇᴅ ᴜsᴇʀs:</b>\n\n"
+            for uid in banned_users:
+                try:
+                    user = await client.get_users(uid)
+                    name = user.first_name or "Unknown"
+                    if user.last_name:
+                        name += f" {user.last_name}"
+                except:
+                    name = "ᴜɴᴋɴᴏᴡɴ ᴜsᴇʀ"
+                list_text += f"• {name} (`{uid}`)\n"
+
+        buttons = [[InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="ban_unban_menu_btn")]]
+        await edit_msg_with_pic(
+            message=callback_query.message,
+            text=get_styled_text(list_text),
+            buttons=InlineKeyboardMarkup(buttons)
+        )
+    except Exception as e:
+        await callback_query.answer(f"ᴇʀʀᴏʀ: {e}", show_alert=True)
+
 
 
 # Rexbots
