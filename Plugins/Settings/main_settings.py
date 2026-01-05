@@ -71,7 +71,7 @@ async def settings_main_menu_2(client, callback_query):
     try:
         buttons = [
             [InlineKeyboardButton("ᴅᴜᴍᴘ ᴄʜɴʟ", callback_data="header_dump_channel"),
-             InlinekeyboardButton("Uᴘʟᴏᴀᴅ ᴄʜɴʟ", callback_data="header_auto_update_channels")
+             InlineKeyboardButton("Uᴘʟᴏᴀᴅ ᴄʜɴʟ", callback_data="header_auto_update_channels")
             ],
             [
                 InlineKeyboardButton("ᴜᴘᴅᴀᴛᴇ ᴛᴇxᴛ", callback_data="set_update_text_btn"),
