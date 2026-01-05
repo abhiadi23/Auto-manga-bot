@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from PIL import Image, ImageDraw, ImageFont, ImageColor
 import zipfile
-import zipfile
 import re
 import pypdf # Added for PDF password protection
 
@@ -88,6 +87,24 @@ class Downloader:
         logger.info(f"Downloaded {successful}/{len(urls)} images ({success_rate:.1%})")
         return success_rate >= 0.8
 
+    def validate_image(self, img_path: Path) -> bool:
+        """Validate if file is a proper image"""
+        if not img_path.exists():
+            logger.error(f"Image file does not exist: {img_path}")
+            return False
+        
+        if img_path.stat().st_size == 0:
+            logger.error(f"Image file is empty: {img_path}")
+            return False
+        
+        try:
+            with Image.open(img_path) as img:
+                img.verify()  # Verify it's a valid image
+            return True
+        except Exception as e:
+            logger.error(f"Invalid image file {img_path}: {e}")
+            return False
+
     def create_pdf(self, chapter_dir: Path, manga_title: str, chapter_num: str, chapter_title: str) -> Optional[Path]:
         try:
             base_name = f"{manga_title} - Ch {chapter_num}"
@@ -143,11 +160,6 @@ class Downloader:
             logger.error(f"PDF creation failed: {e}")
             return None
 
-            return pdf_path
-        except Exception as e:
-            logger.error(f"PDF creation failed: {e}")
-            return None
-
     def create_cbz(self, chapter_dir: Path, manga_title: str, chapter_num: str, chapter_title: str, intro: Path = None, outro: Path = None, quality: int = None) -> Optional[Path]:
         try:
             base_name = f"{manga_title} - Ch {chapter_num}"
@@ -161,20 +173,33 @@ class Downloader:
                 return None
             
             final_images = []
-            if intro and intro.exists(): final_images.append(intro)
+            
+            # Validate intro image
+            if intro and intro.exists() and self.validate_image(intro):
+                final_images.append(intro)
+            elif intro:
+                logger.warning(f"Skipping invalid intro image: {intro}")
+            
             final_images.extend(img_files)
-            if outro and outro.exists(): final_images.append(outro)
+            
+            # Validate outro image
+            if outro and outro.exists() and self.validate_image(outro):
+                final_images.append(outro)
+            elif outro:
+                logger.warning(f"Skipping invalid outro image: {outro}")
 
             with zipfile.ZipFile(cbz_path, 'w', zipfile.ZIP_DEFLATED) as cbz:
                 for idx, img_path in enumerate(final_images):
                     if quality is not None:
-                         try:
-                             with Image.open(img_path) as img:
-                                 if img.mode != 'RGB': img = img.convert('RGB')
-                                 with cbz.open(f"{idx:04d}.jpg", "w") as zf:
-                                     img.save(zf, "JPEG", quality=quality, optimize=True)
-                         except:
-                             cbz.write(img_path, arcname=f"{idx:04d}.jpg")
+                        try:
+                            with Image.open(img_path) as img:
+                                if img.mode != 'RGB': 
+                                    img = img.convert('RGB')
+                                with cbz.open(f"{idx:04d}.jpg", "w") as zf:
+                                    img.save(zf, "JPEG", quality=quality, optimize=True)
+                        except Exception as e:
+                            logger.error(f"Failed to process image {img_path}: {e}")
+                            cbz.write(img_path, arcname=f"{idx:04d}.jpg")
                     else:
                         cbz.write(img_path, arcname=f"{idx:04d}.jpg")
             
@@ -241,7 +266,8 @@ class Downloader:
 
     def apply_password(self, pdf_path: Path, password: str) -> bool:
         """Apply password protection to PDF"""
-        if not password: return True
+        if not password: 
+            return True
         try:
             reader = pypdf.PdfReader(pdf_path)
             writer = pypdf.PdfWriter()
@@ -255,15 +281,15 @@ class Downloader:
             with open(temp_path, "wb") as f:
                 writer.write(f)
             
-            pdf_path.unlink() # Delete unprotected
-            temp_path.rename(pdf_path) # Move protected
+            pdf_path.unlink()  # Delete unprotected
+            temp_path.rename(pdf_path)  # Move protected
             return True
         except Exception as e:
             logger.error(f"Password protection failed: {e}")
             return False
 
     def create_pdf_v2(self, chapter_dir: Path, manga_title: str, chapter_num: str, chapter_title: str, intro: Path = None, outro: Path = None, quality: int = None, watermark: dict = None, password: str = None) -> Optional[Path]:
-         try:
+        try:
             clean_title = re.sub(r'\[Ch-.*?\]', '', manga_title, flags=re.IGNORECASE)
             clean_title = re.sub(r'\s*-\s*Chapter\s*\d+', '', clean_title, flags=re.IGNORECASE)
             clean_title = clean_title.strip()
@@ -276,12 +302,30 @@ class Downloader:
 
             img_files = sorted(chapter_dir.glob("*.jpg"))
             if not img_files:
+                logger.error("No image files found in chapter directory")
                 return None
 
             final_images = []
-            if intro and intro.exists(): final_images.append(intro)
+            
+            # Validate and add intro image
+            if intro and intro.exists():
+                if self.validate_image(intro):
+                    final_images.append(intro)
+                else:
+                    logger.warning(f"Skipping invalid intro image: {intro}")
+            elif intro:
+                logger.warning(f"Intro image does not exist: {intro}")
+            
             final_images.extend(img_files)
-            if outro and outro.exists(): final_images.append(outro)
+            
+            # Validate and add outro image
+            if outro and outro.exists():
+                if self.validate_image(outro):
+                    final_images.append(outro)
+                else:
+                    logger.warning(f"Skipping invalid outro image: {outro}")
+            elif outro:
+                logger.warning(f"Outro image does not exist: {outro}")
 
             images_to_save = []
             first_image = None
@@ -289,48 +333,66 @@ class Downloader:
             q = quality if quality is not None else 85
             
             for i, img_path in enumerate(final_images):
-                img = Image.open(img_path)
-                if img.width > 2000 or img.height > 2000:
-                    ratio = min(2000 / img.width, 2000 / img.height)
-                    new_size = (int(img.width * ratio), int(img.height * ratio))
-                    img = img.resize(new_size, Image.Resampling.LANCZOS)
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
+                try:
+                    # Validate before opening
+                    if not self.validate_image(img_path):
+                        logger.warning(f"Skipping invalid image: {img_path}")
+                        continue
+                    
+                    img = Image.open(img_path)
+                    
+                    # Resize if needed
+                    if img.width > 2000 or img.height > 2000:
+                        ratio = min(2000 / img.width, 2000 / img.height)
+                        new_size = (int(img.width * ratio), int(img.height * ratio))
+                        img = img.resize(new_size, Image.Resampling.LANCZOS)
+                    
+                    # Convert to RGB
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    # Apply watermark
+                    if watermark:
+                        img = self.apply_watermark(img, watermark)
+
+                    if i == 0:
+                        first_image = img
+                    else:
+                        images_to_save.append(img)
+
+                    if i % 20 == 0:
+                        gc.collect()
                 
-                if watermark:
-                    img = self.apply_watermark(img, watermark)
-
-                if i == 0:
-                    first_image = img
-                else:
-                    images_to_save.append(img)
-
-                if i % 20 == 0:
-                    gc.collect()
+                except Exception as e:
+                    logger.error(f"Failed to process image {img_path}: {e}")
+                    continue
 
             if not first_image:
+                logger.error("No valid first image found for PDF creation")
                 return None
 
+            # Save PDF
             first_image.save(
                 pdf_path, "PDF", resolution=72.0, save_all=True,
                 append_images=images_to_save, optimize=True, quality=q
             )
             
-            for img in images_to_save: img.close()
+            # Cleanup
+            for img in images_to_save: 
+                img.close()
             first_image.close()
             gc.collect()
             
-            for img in images_to_save: img.close()
-            first_image.close()
-            gc.collect()
-            
+            # Apply password protection
             if password:
                 self.apply_password(pdf_path, password)
             
+            logger.info(f"PDF created successfully: {pdf_path}")
             return pdf_path
-         except Exception as e:
-             logger.error(f"PDF v2 failed: {e}")
-             return None
+            
+        except Exception as e:
+            logger.error(f"PDF v2 failed: {e}", exc_info=True)
+            return None
 
     async def download_cover(self, cover_url: str, output_path: Path, headers: dict = None) -> bool:
         if not cover_url:
