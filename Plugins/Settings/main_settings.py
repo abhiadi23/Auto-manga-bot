@@ -3,7 +3,7 @@
 # Telegram Channel @RexBots_Official 
 # Support group @rexbotschat
 
-from pyrogram import Client, filters, enums
+from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import Config
 from Database.database import Seishiro
@@ -59,7 +59,7 @@ async def settings_main_menu(client, callback_query):
             message=callback_query.message,
             text=text,
             buttons=InlineKeyboardMarkup(buttons),
-            parse_mode=enums.ParseMode.HTML  # Fixed: correct parameter name and enum
+            parse_mode=ParseMode.HTML  # Fixed: correct parameter name and enum
         )
     except Exception as e:
         await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs", show_alert=True)
@@ -125,7 +125,7 @@ async def settings_main_menu_2(client, callback_query):
             message=callback_query.message,
             text=text,
             buttons=InlineKeyboardMarkup(buttons),
-            parse_mode=enums.ParseMode.HTML  # Added missing parse_mode
+            parse_mode=ParseMode.HTML  # Added missing parse_mode
         )
     except Exception as e:
         await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs ᴘᴀɢᴇ 2", show_alert=True)
@@ -162,7 +162,7 @@ async def start_menu_cb(client, callback_query):
         message=callback_query.message,
         text=caption,
         buttons=buttons,
-        parse_mode=enums.ParseMode.HTML  # Added parse_mode for consistency
+        parse_mode=ParseMode.HTML  # Added parse_mode for consistency
     )
 
 
@@ -197,7 +197,7 @@ async def set_source_menu(client, callback_query):
             message=callback_query.message,
             text=text,
             buttons=InlineKeyboardMarkup(buttons),
-            parse_mode=enums.ParseMode.HTML
+            parse_mode=ParseMode.HTML
         )
     except Exception as e:
         await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴏᴜʀᴄᴇ ᴍᴇɴᴜ", show_alert=True)
