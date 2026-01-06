@@ -44,7 +44,6 @@ async def settings_input_listener(client, message):
                 parse_mode=enums.ParseMode.HTML
             )
             
-            from Plugins.Settings.media_settings import set_caption_cb
             curr = await Seishiro.get_caption()
             curr_disp = "ꜱᴇᴛ" if curr else "ɴᴏɴᴇ"
             text = get_styled_text(
@@ -103,45 +102,103 @@ async def settings_input_listener(client, message):
                 return
 
         elif state == "waiting_auc_id":
+            input_text = message.text.strip()
+            
+            if not input_text:
+                await message.reply("❌ ᴘʟᴇᴀꜱᴇ ᴘʀᴏᴠɪᴅᴇ ᴀ ᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ɪᴅ.")
+                return
+            
             try:
-                cid = int(message.text)
+                cid = int(input_text)
                 chat = await client.get_chat(cid)
-                title = chat.title
-
-                if await Seishiro.set_default_channel(cid, title):
+                title = getattr(chat, 'title', f"Channel {cid}")
+                
+                success = await Seishiro.set_default_channel(cid, title)
+                
+                if success:
+                    if user_id in user_states:
+                        del user_states[user_id]
+                    
                     text = get_styled_text(
-                        f"✅ ᴀᴅᴅᴇᴅ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:\n{title} ({cid})"
+                        f"✅ ᴀᴅᴅᴇᴅ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:\n\n"
+                        f"📢 <b>ᴛɪᴛʟᴇ:</b> {title}\n"
+                        f"🆔 <b>ɪᴅ:</b> <code>{cid}</code>"
                     )
-                    buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")]]
+                    buttons = [
+                        [InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")],
+                        [InlineKeyboardButton("❄ ᴄʟᴏꜱᴇ ❄", callback_data="stats_close")]
+                    ]
                     await message.reply(
                         text=text,
                         reply_markup=InlineKeyboardMarkup(buttons),
                         parse_mode=enums.ParseMode.HTML
                     )
                 else:
-                    await message.reply("❌ ꜰᴀɪʟᴇᴅ ᴛᴏ ᴀᴅᴅ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴅʙ.")
-            except Exception as e:
+                    await message.reply("❌ ꜰᴀɪʟᴇᴅ ᴛᴏ ᴀᴅᴅ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴅᴀᴛᴀʙᴀꜱᴇ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ.")
+                    return
+                    
+            except ValueError:
                 await message.reply(
-                    f"❌ <b>ᴇʀʀᴏʀ:</b> ʙᴏᴛ ᴄᴀɴɴᴏᴛ ᴀᴄᴄᴇꜱꜱ ᴄʜᴀɴɴᴇʟ ᴏʀ ɪɴᴠᴀʟɪᴅ ɪᴅ.\n<code>{e}</code>",
+                    "❌ ɪɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ɪᴅ ꜰᴏʀᴍᴀᴛ.\n\n"
+                    "ᴘʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍᴇʀɪᴄ ɪᴅ (ᴇ.ɢ., -100123456789)"
+                )
+                return
+            except Exception as e:
+                error_msg = str(e)
+                await message.reply(
+                    f"❌ <b>ᴇʀʀᴏʀ:</b> ʙᴏᴛ ᴄᴀɴɴᴏᴛ ᴀᴄᴄᴇꜱꜱ ᴛʜɪꜱ ᴄʜᴀɴɴᴇʟ.\n\n"
+                    f"<b>ᴘᴏꜱꜱɪʙʟᴇ ʀᴇᴀꜱᴏɴꜱ:</b>\n"
+                    f"• ʙᴏᴛ ɪꜱ ɴᴏᴛ ᴀᴅᴅᴇᴅ ᴛᴏ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ\n"
+                    f"• ʙᴏᴛ ɪꜱ ɴᴏᴛ ᴀɴ ᴀᴅᴍɪɴ\n"
+                    f"• ɪɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ɪᴅ\n\n"
+                    f"<code>{error_msg}</code>",
                     parse_mode=enums.ParseMode.HTML
                 )
                 return
 
         elif state == "waiting_auc_rem_id":
+            input_text = message.text.strip()
+            
+            if not input_text:
+                await message.reply("❌ ᴘʟᴇᴀꜱᴇ ᴘʀᴏᴠɪᴅᴇ ᴀ ᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ɪᴅ.")
+                return
+                
             try:
-                cid = int(message.text)
-                if await Seishiro.remove_default_channel(cid):
-                    text = get_styled_text(f"✅ ʀᴇᴍᴏᴠᴇᴅ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ: {cid}")
-                    buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")]]
+                cid = int(input_text)
+                success = await Seishiro.remove_default_channel(cid)
+                
+                if success:
+                    if user_id in user_states:
+                        del user_states[user_id]
+                    
+                    text = get_styled_text(
+                        f"✅ ʀᴇᴍᴏᴠᴇᴅ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:\n\n"
+                        f"🆔 <b>ɪᴅ:</b> <code>{cid}</code>"
+                    )
+                    buttons = [
+                        [InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")],
+                        [InlineKeyboardButton("❄ ᴄʟᴏꜱᴇ ❄", callback_data="stats_close")]
+                    ]
                     await message.reply(
                         text=text,
                         reply_markup=InlineKeyboardMarkup(buttons),
                         parse_mode=enums.ParseMode.HTML
                     )
                 else:
-                    await message.reply("❌ ᴄʜᴀɴɴᴇʟ ɪᴅ ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ʟɪꜱᴛ.")
+                    await message.reply(
+                        "❌ ᴄʜᴀɴɴᴇʟ ɪᴅ ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟꜱ ʟɪꜱᴛ.\n\n"
+                        "ᴘʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ᴛʜᴇ ɪᴅ ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ."
+                    )
+                    return
+                    
             except ValueError:
-                await message.reply("❌ ɪɴᴠᴀʟɪᴅ ɪᴅ ꜰᴏʀᴍᴀᴛ.")
+                await message.reply(
+                    "❌ ɪɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ɪᴅ ꜰᴏʀᴍᴀᴛ.\n\n"
+                    "ᴘʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍᴇʀɪᴄ ɪᴅ (ᴇ.ɢ., -100123456789)"
+                )
+                return
+            except Exception as e:
+                await message.reply(f"❌ ᴜɴᴇxᴘᴇᴄᴛᴇᴅ ᴇʀʀᴏʀ: {e}")
                 return
         
         elif state == "waiting_password":
@@ -205,7 +262,7 @@ async def settings_input_listener(client, message):
         elif state == "waiting_fsub_id":
             try:
                 cid = int(message.text)
-                await client.get_chat(cid)  # Verify bot has access
+                await client.get_chat(cid)
                 await Seishiro.add_fsub_channel(cid)
                 await message.reply(
                     get_styled_text(f"✅ ꜰꜱᴜʙ ᴄʜᴀɴɴᴇʟ ᴀᴅᴅᴇᴅ: {cid}"),
@@ -338,8 +395,10 @@ async def settings_input_listener(client, message):
                 )
             except ValueError:
                 await message.reply("❌ ɪɴᴠᴀʟɪᴅ ᴜꜱᴇʀ ɪᴅ.")
+                return
             except Exception as e:
                 await message.reply(f"❌ ᴇʀʀᴏʀ: {e}")
+                return
 
         elif state == "waiting_del_admin":
             try:
@@ -354,8 +413,10 @@ async def settings_input_listener(client, message):
                 )
             except ValueError:
                 await message.reply("❌ ɪɴᴠᴀʟɪᴅ ᴜꜱᴇʀ ɪᴅ.")
+                return
             except Exception as e:
                 await message.reply(f"❌ ᴇʀʀᴏʀ: {e}")
+                return
 
         elif state == "waiting_broadcast_msg":
             try:
@@ -365,18 +426,16 @@ async def settings_input_listener(client, message):
                 successful = 0
                 unsuccessful = 0
                 
-                for user_id in all_users:
+                for uid in all_users:
                     try:
-                        await message.copy(chat_id=user_id)
+                        await message.copy(chat_id=uid)
                         successful += 1
                     except Exception:
                         unsuccessful += 1
                         
                     if (successful + unsuccessful) % 20 == 0:
                         try:
-                            await status_msg.edit(
-                                f"🚀 ʙʀᴏᴀᴅᴄᴀꜱᴛɪɴɢ... {successful}/{total} ꜱᴇɴᴛ."
-                            )
+                            await status_msg.edit(f"🚀 ʙʀᴏᴀᴅᴄᴀꜱᴛɪɴɢ... {successful}/{total} ꜱᴇɴᴛ.")
                         except:
                             pass
                 
