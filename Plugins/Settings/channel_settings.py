@@ -17,26 +17,19 @@ logger = logging.getLogger(__name__)
 
 @Client.on_callback_query(filters.regex("^header_auto_update_channels$"))
 async def auc_menu(client, callback_query):
-    text = get_styled_text("ʏᴏᴜʀ ᴀᴜᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ")
+    text = get_styled_text("ʏᴏᴜʀ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ")
     
     buttons = [
         [
             InlineKeyboardButton("+ ᴀᴅᴅ +", callback_data="auc_add"),
-            InlineKeyboardButton("- ʀᴇᴍᴏᴠᴇ ᴀʟʟ -", callback_data="auc_rem_all")
+            InlineKeyboardButton("- ʀᴇᴍᴏᴠᴇ ᴀʟʟ -", callback_data="auc_rem")
         ],
         [
-            InlineKeyboardButton("- ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ -", callback_data="auc_rem_channel")
-        ],
-        [
-            InlineKeyboardButton("ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟs 👁", callback_data="auc_view_channels")
-        ],
-        [
-            InlineKeyboardButton("ʀᴇғʀᴇsʜ", callback_data="header_auto_update_channels"),
-            InlineKeyboardButton("ɪᴍᴘᴏʀᴛ", callback_data="auc_import")
+            InlineKeyboardButton("ᴠɪᴇᴡ ᴄʜᴀɴɴᴇʟ", callback_data="auc_view_channels")
         ],
         [
             InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="settings_menu"),
-            InlineKeyboardButton("* ᴄʟᴏsᴇ *", callback_data="stats_close")
+            InlineKeyboardButton("• ᴄʟᴏsᴇ •", callback_data="stats_close")
         ]
     ]
     
@@ -49,7 +42,7 @@ async def auc_menu(client, callback_query):
 @Client.on_callback_query(filters.regex("^auc_add$"))
 async def auc_add_cb(client, callback_query):
     text = get_styled_text(
-        "<b>➕ ᴀᴅᴅ ᴀᴜᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+        "<b>➕ ᴀᴅᴅ ᴀᴜᴛᴏ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n"
         "sᴇɴᴅ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. -100xxx) ᴛᴏ ᴀᴅᴅ.\n"
         "<i>ʙᴏᴛ ᴍᴜsᴛ ʙᴇ ᴀᴅᴍɪɴ ɪɴ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴠᴇʀɪғʏ!</i>\n"
         "<i>(ᴀᴜᴛᴏ-ᴄʟᴏsᴇ ɪɴ 30s)</i>"
@@ -61,21 +54,10 @@ async def auc_add_cb(client, callback_query):
     
     asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_auc_id"))
 
-@Client.on_callback_query(filters.regex("^auc_rem_all$"))
-async def auc_rem_all_cb(client, callback_query):
-    await Seishiro.clear_auto_update_channels()
-    await callback_query.answer("✅ ᴀʟʟ ᴄʜᴀɴɴᴇʟs ʀᴇᴍᴏᴠᴇᴅ!", show_alert=True)
-    await auc_menu(client, callback_query)
-
-@Client.on_callback_query(filters.regex("^auc_import$"))
-async def auc_import_cb(client, callback_query):
-    await callback_query.answer("ɪᴍᴘᴏʀᴛ ғᴇᴀᴛᴜʀᴇ ᴄᴏᴍɪɴɢ sᴏᴏɴ!", show_alert=True)
-
-
-@Client.on_callback_query(filters.regex("^auc_rem_channel$"))
+@Client.on_callback_query(filters.regex("^auc_rem$"))
 async def auc_rem_channel_cb(client, callback_query):
     text = get_styled_text(
-        "<b>➖ ʀᴇᴍᴏᴠᴇ ᴀᴜᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+        "<b>➖ ʀᴇᴍᴏᴠᴇ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n"
         "sᴇɴᴅ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. -100xxx) ᴛᴏ ʀᴇᴍᴏᴠᴇ.\n"
         "<i>(ᴀᴜᴛᴏ-ᴄʟᴏsᴇ ɪɴ 30s)</i>"
     )
@@ -90,20 +72,20 @@ async def auc_rem_channel_cb(client, callback_query):
 @Client.on_callback_query(filters.regex("^auc_view_channels$"))
 async def auc_view_channels_cb(client, callback_query):
     try:
-        auto_chs = await Seishiro.get_auto_update_channels()
+        auto_chs = await Seishiro.get_default_channel()
         
         if not auto_chs:
-            text = get_styled_text("<b>🤖 ᴀᴜᴛᴏ-ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟs</b>\n\n➥ ɴᴏ ᴄʜᴀɴɴᴇʟs ғᴏᴜɴᴅ")
+            text = get_styled_text("<b>🤖 Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n➥ ɴᴏ ᴄʜᴀɴɴᴇʟ ғᴏᴜɴᴅ")
         else:
-            text = get_styled_text("<b>🤖 ᴀᴜᴛᴏ-ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟs</b>\n\n")
+            text = get_styled_text("<b>🤖 Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n")
             for c in auto_chs:
                 db_title = c.get('title', 'ᴜɴᴋɴᴏᴡɴ')
                 cid = c.get('_id')
                 try:
                     chat = await client.get_chat(int(cid))
-                    text += f"• {chat.title}\n  ɪᴅ: `{cid}`\n\n"
+                    text += f"• {chat.title}\n  ɪᴅ: `{cid}`"
                 except:
-                    text += f"• {db_title}\n  ɪᴅ: `{cid}` (ɪɴᴠᴀʟɪᴅ)\n\n"
+                    text += f"• {db_title}\n  ɪᴅ: `{cid}` (ɪɴᴠᴀʟɪᴅ)"
         
         buttons = [[InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="header_auto_update_channels")]]
         await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
