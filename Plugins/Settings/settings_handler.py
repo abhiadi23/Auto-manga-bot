@@ -141,13 +141,8 @@ async def settings_input_listener(client, message):
                             f"✅ ᴀᴅᴅᴇᴅ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:\n\n"
                             f"📢 <b>ᴛɪᴛʟᴇ:</b> {title}\n"
                             f"🆔 <b>ɪᴅ:</b> <code>{cid}</code>",
-                            reply_markup=InlineKeyboardMarkup(buttons),
                             parse_mode=enums.ParseMode.HTML)
                     )
-                    buttons = [
-                        [InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")],
-                        [InlineKeyboardButton("❄ ᴄʟᴏꜱᴇ ❄", callback_data="stats_close")]
-                    ]
                     
             except ValueError:
                 await message.reply(
