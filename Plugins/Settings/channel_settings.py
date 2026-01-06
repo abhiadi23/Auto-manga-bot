@@ -42,7 +42,7 @@ async def auc_menu(client, callback_query):
 @Client.on_callback_query(filters.regex("^auc_add$"))
 async def auc_add_cb(client, callback_query):
     text = get_styled_text(
-        "<b>➕ ᴀᴅᴅ ᴀᴜᴛᴏ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n"
+        "<b>➕ ᴀᴅᴅ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n"
         "sᴇɴᴅ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ɪᴅ (ᴇ.ɢ. -100xxx) ᴛᴏ ᴀᴅᴅ.\n"
         "<i>ʙᴏᴛ ᴍᴜsᴛ ʙᴇ ᴀᴅᴍɪɴ ɪɴ ᴛʜᴇ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴠᴇʀɪғʏ!</i>\n"
         "<i>(ᴀᴜᴛᴏ-ᴄʟᴏsᴇ ɪɴ 30s)</i>"
@@ -72,13 +72,13 @@ async def auc_rem_channel_cb(client, callback_query):
 @Client.on_callback_query(filters.regex("^auc_view_channels$"))
 async def auc_view_channels_cb(client, callback_query):
     try:
-        auto_chs = await Seishiro.get_default_channel()
+        auto_ch = await Seishiro.get_default_channel(channel_id)
         
-        if not auto_chs:
+        if not auto_ch:
             text = get_styled_text("<b>🤖 Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n➥ ɴᴏ ᴄʜᴀɴɴᴇʟ ғᴏᴜɴᴅ")
         else:
             text = get_styled_text("<b>🤖 Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n")
-            for c in auto_chs:
+            for c in auto_ch:
                 db_title = c.get('title', 'ᴜɴᴋɴᴏᴡɴ')
                 cid = c.get('_id')
                 try:
