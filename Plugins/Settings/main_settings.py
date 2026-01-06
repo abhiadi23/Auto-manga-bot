@@ -63,7 +63,7 @@ async def settings_main_menu(client, callback_query):
             message=callback_query.message,
             text=text,
             buttons=InlineKeyboardMarkup(buttons),
-            enmus.parse_mode=HTML
+            parse_mode=enums.ParseMode.HTML
         )
     except Exception as e:
         await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs")
@@ -123,7 +123,8 @@ async def settings_main_menu_2(client, callback_query):
         await edit_msg_with_pic(
             message=callback_query.message,
             text=text,
-            buttons=InlineKeyboardMarkup(buttons)
+            buttons=InlineKeyboardMarkup(buttons),
+            parse_mode=enums.ParseMode.HTML
         )
     except Exception as e:
         await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs ᴘᴀɢᴇ 2")
