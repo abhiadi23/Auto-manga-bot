@@ -140,8 +140,8 @@ async def settings_input_listener(client, message):
                         get_styled_text(
                             f"✅ ᴀᴅᴅᴇᴅ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:\n\n"
                             f"📢 <b>ᴛɪᴛʟᴇ:</b> {title}\n"
-                            f"🆔 <b>ɪᴅ:</b> <code>{cid}</code>",
-                            parse_mode=enums.ParseMode.HTML)
+                            f"🆔 <b>ɪᴅ:</b> <code>{cid}</code>"),
+                            parse_mode=enums.ParseMode.HTML
                     )
                     
             except ValueError:
