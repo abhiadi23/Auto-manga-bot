@@ -114,7 +114,7 @@ async def settings_input_listener(client, message):
                     )
                     buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")]]
                     await message.reply(
-                        text,
+                        text=text,
                         reply_markup=InlineKeyboardMarkup(buttons),
                         parse_mode=enums.ParseMode.HTML
                     )
@@ -134,7 +134,7 @@ async def settings_input_listener(client, message):
                     text = get_styled_text(f"✅ ʀᴇᴍᴏᴠᴇᴅ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ: {cid}")
                     buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")]]
                     await message.reply(
-                        text,
+                        text=text,
                         reply_markup=InlineKeyboardMarkup(buttons),
                         parse_mode=enums.ParseMode.HTML
                     )
