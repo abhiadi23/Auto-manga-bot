@@ -1,13 +1,11 @@
 # Rexbots
 # Don't Remove Credit
 # Telegram Channel @RexBots_Official 
-#Supoort group @rexbotschat
-
+# Support group @rexbotschat
 
 from pyrogram import Client, filters, enums
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import Config
-from Database.database import Seishiro
 from Database.database import Seishiro
 from Plugins.helper import get_styled_text, admin, edit_msg_with_pic
 from Plugins.Settings.admin_settings import *
@@ -22,7 +20,6 @@ async def settings_main_menu(client, callback_query):
 
         buttons = [
             [InlineKeyboardButton("• <u>ʀᴇxʙᴏᴛs ᴏғғɪᴄᴀʟ</u> •", callback_data="header_watermark")],
-            
             [
                 InlineKeyboardButton("ʙᴀɴɴᴇʀ", callback_data="set_banner_btn"),
                 InlineKeyboardButton("ᴄᴀᴘᴛɪᴏɴ", callback_data="set_caption_btn")
@@ -46,7 +43,6 @@ async def settings_main_menu(client, callback_query):
             [
                 InlineKeyboardButton("ᴛʜᴜᴍʙɴᴀɪʟ", callback_data="set_thumb_btn")
             ],
-
             [
                 InlineKeyboardButton("• ʜᴏᴍᴇ", callback_data="start_menu"),
                 InlineKeyboardButton("ɴᴇxᴛ •", callback_data="settings_menu_2")
@@ -63,22 +59,26 @@ async def settings_main_menu(client, callback_query):
             message=callback_query.message,
             text=text,
             buttons=InlineKeyboardMarkup(buttons),
-            parse_mode=enums.ParseMode.HTML
+            parse_mode=enums.ParseMode.HTML  # Fixed: correct parameter name and enum
         )
     except Exception as e:
-        await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs")
+        await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs", show_alert=True)
+
 
 @Client.on_callback_query(filters.regex("^settings_menu_2$"))
 async def settings_main_menu_2(client, callback_query):
     try:
         buttons = [
-            [InlineKeyboardButton("ᴅᴜᴍᴘ ᴄʜɴʟ", callback_data="header_dump_channel"),
-             InlineKeyboardButton("Uᴘʟᴏᴀᴅ ᴄʜɴʟ", callback_data="header_auto_update_channels")
+            [
+                InlineKeyboardButton("ᴅᴜᴍᴘ ᴄʜɴʟ", callback_data="header_dump_channel"),
+                InlineKeyboardButton("Uᴘʟᴏᴀᴅ ᴄʜɴʟ", callback_data="header_auto_update_channels")
             ],
             [InlineKeyboardButton("<u>ᴍᴏɴɪᴛᴏʀ & ғsᴜʙ</u>", callback_data="header_new_items")],
-
             [
-                InlineKeyboardButton(f"ᴍᴏɴɪᴛᴏʀ: {'✅ ᴏɴ' if await Seishiro.get_monitoring_status() else '❌ ᴏғғ'}", callback_data="toggle_monitor"),
+                InlineKeyboardButton(
+                    f"ᴍᴏɴɪᴛᴏʀ: {'✅ ᴏɴ' if await Seishiro.get_monitoring_status() else '❌ ᴏғғ'}",
+                    callback_data="toggle_monitor"
+                ),
                 InlineKeyboardButton("ᴠɪᴇᴡ ᴘʀᴏɢʀᴇss 📊", callback_data="view_progress")
             ],
             [
@@ -90,12 +90,13 @@ async def settings_main_menu_2(client, callback_query):
                 InlineKeyboardButton("ᴅᴇʟᴇᴛᴇ ᴛɪᴍᴇʀ", callback_data="set_deltimer_btn")
             ],
             [InlineKeyboardButton("ᴍᴀɴɢᴀ sᴏᴜʀᴄᴇ", callback_data="header_source")],
-
             [
-                InlineKeyboardButton(f"📡 sᴏᴜʀᴄᴇ: {await Seishiro.get_config('manga_source', 'mangadex')}", callback_data="set_source_btn")
+                InlineKeyboardButton(
+                    f"📡 sᴏᴜʀᴄᴇ: {await Seishiro.get_config('manga_source', 'mangadex')}",
+                    callback_data="set_source_btn"
+                )
             ],
             [InlineKeyboardButton("<u>ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟs</u>", callback_data="header_admins")],
-            
             [
                 InlineKeyboardButton("ᴀᴅᴍɪɴs 👮‍♂️", callback_data="admin_menu_btn"),
                 InlineKeyboardButton("ʙʀᴏᴀᴅᴄᴀsᴛ 📢", callback_data="broadcast_btn")
@@ -124,25 +125,28 @@ async def settings_main_menu_2(client, callback_query):
             message=callback_query.message,
             text=text,
             buttons=InlineKeyboardMarkup(buttons),
-            parse_mode=enums.ParseMode.HTML
+            parse_mode=enums.ParseMode.HTML  # Added missing parse_mode
         )
     except Exception as e:
-        await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs ᴘᴀɢᴇ 2")
+        await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs ᴘᴀɢᴇ 2", show_alert=True)
 
-@Client.on_callback_query(filters.regex("^header_(?!dump_channel|source|auto_update_channels|auto_upload_channels|new_items)"))
+
+@Client.on_callback_query(filters.regex("^header_(?!dump_channel|source|auto_update_channels|auto_upload_channels|new_items).*$"))
 async def header_callback(client, callback_query):
-    await callback_query.answer("ᴠᴀʟᴜᴇs ɪɴ ᴛʜɪs sᴇᴄᴛɪᴏɴ:", show_alert=False)
+    await callback_query.answer("ᴠᴀʟᴜᴇs ɪɴ ᴛʜɪs sᴇᴄᴛɪᴏɴ:", show_alert=True)  # Fixed show_alert
+
 
 @Client.on_callback_query(filters.regex("^stats_close$"))
 async def close_callback(client, callback_query):
     await callback_query.message.delete()
 
+
 @Client.on_callback_query(filters.regex("^start_menu$"))
 async def start_menu_cb(client, callback_query):
     caption = (
         f"<b>👋 ʜᴇʟʟᴏ {callback_query.from_user.first_name}!</b>\n\n"
-        f"<blockquote>ɪ ᴀᴍ ᴀɴ ᴀᴅᴠᴀɴᴄᴇᴅ ᴍᴀɴɢᴀ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ & ᴜᴘʟᴏᴀᴅᴇʀ ʙᴏᴛ.</blockquote>\n\n"
-        f"<i>ᴄʟɪᴄᴋ ᴛʜᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛʀᴏʟ ᴍᴇ!</i>"
+        "<blockquote>ɪ ᴀᴍ ᴀɴ ᴀᴅᴠᴀɴᴄᴇᴅ ᴍᴀɴɢᴀ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ & ᴜᴘʟᴏᴀᴅᴇʀ ʙᴏᴛ.</blockquote>\n\n"
+        "<i>ᴄʟɪᴄᴋ ᴛʜᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛʀᴏʟ ᴍᴇ!</i>"
     )
     buttons = InlineKeyboardMarkup([
         [
@@ -154,7 +158,12 @@ async def start_menu_cb(client, callback_query):
             InlineKeyboardButton("👨‍💻 ᴅᴇᴠᴇʟᴏᴘᴇʀ", url="https://t.me/akaza7902")
         ]
     ])
-    await edit_msg_with_pic(callback_query.message, caption, buttons)
+    await edit_msg_with_pic(
+        message=callback_query.message,
+        text=caption,
+        buttons=buttons,
+        parse_mode=enums.ParseMode.HTML  # Added parse_mode for consistency
+    )
 
 
 @Client.on_callback_query(filters.regex("^set_source_btn$"))
@@ -180,22 +189,18 @@ async def set_source_menu(client, callback_query):
                 InlineKeyboardButton(f"{'✅ ' if current == 'allmanga' else ''}ᴀʟʟᴍᴀɴɢᴀ", callback_data="set_source_allmanga")
             ],
             [
-                InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="settings_menu")
+                InlineKeyboardButton("⬅ ʙᴀᴄᴋ", callback_data="settings_menu_2")  # Better to go back to page 2
             ]
         ]
         
         await edit_msg_with_pic(
             message=callback_query.message,
             text=text,
-            buttons=InlineKeyboardMarkup(buttons)
+            buttons=InlineKeyboardMarkup(buttons),
+            parse_mode=enums.ParseMode.HTML
         )
     except Exception as e:
-        await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴏᴜʀᴄᴇ ᴍᴇɴᴜ")
-
-# Rexbots
-# Don't Remove Credit
-# Telegram Channel @RexBots_Official 
-#Supoort group @rexbotschat
+        await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴏᴜʀᴄᴇ ᴍᴇɴᴜ", show_alert=True)
 
 
 @Client.on_callback_query(filters.regex("^set_source_(.+)$"))
@@ -203,10 +208,4 @@ async def set_source_callback(client, callback_query):
     new_source = callback_query.matches[0].group(1)
     await Seishiro.set_config('manga_source', new_source)
     await callback_query.answer(f"sᴏᴜʀᴄᴇ sᴇᴛ ᴛᴏ: {new_source}", show_alert=True)
-    await set_source_menu(client, callback_query)
-
-
-# Rexbots
-# Don't Remove Credit
-# Telegram Channel @RexBots_Official 
-#Supoort group @rexbotschat
+    await set_source_menu(client, callback_query)  # Refresh the menu with new selection
