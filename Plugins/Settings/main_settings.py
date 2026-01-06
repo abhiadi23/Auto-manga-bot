@@ -19,7 +19,7 @@ async def settings_main_menu(client, callback_query):
             return
 
         buttons = [
-            [InlineKeyboardButton("• <u>ʀᴇxʙᴏᴛs ᴏғғɪᴄᴀʟ</u> •", callback_data="header_watermark")],
+            [InlineKeyboardButton("• ʀᴇxʙᴏᴛs ᴏғғɪᴄᴀʟ •", callback_data="header_watermark")],
             [
                 InlineKeyboardButton("ʙᴀɴɴᴇʀ", callback_data="set_banner_btn"),
                 InlineKeyboardButton("ᴄᴀᴘᴛɪᴏɴ", callback_data="set_caption_btn")
@@ -58,8 +58,7 @@ async def settings_main_menu(client, callback_query):
         await edit_msg_with_pic(
             message=callback_query.message,
             text=text,
-            buttons=InlineKeyboardMarkup(buttons),
-            parse_mode=ParseMode.HTML  # Fixed: correct parameter name and enum
+            buttons=InlineKeyboardMarkup(buttons)
         )
     except Exception as e:
         await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs", show_alert=True)
@@ -73,7 +72,6 @@ async def settings_main_menu_2(client, callback_query):
                 InlineKeyboardButton("ᴅᴜᴍᴘ ᴄʜɴʟ", callback_data="header_dump_channel"),
                 InlineKeyboardButton("Uᴘʟᴏᴀᴅ ᴄʜɴʟ", callback_data="header_auto_update_channels")
             ],
-            [InlineKeyboardButton("<u>ᴍᴏɴɪᴛᴏʀ & ғsᴜʙ</u>", callback_data="header_new_items")],
             [
                 InlineKeyboardButton(
                     f"ᴍᴏɴɪᴛᴏʀ: {'✅ ᴏɴ' if await Seishiro.get_monitoring_status() else '❌ ᴏғғ'}",
@@ -96,7 +94,6 @@ async def settings_main_menu_2(client, callback_query):
                     callback_data="set_source_btn"
                 )
             ],
-            [InlineKeyboardButton("<u>ᴀᴅᴍɪɴ ᴄᴏɴᴛʀᴏʟs</u>", callback_data="header_admins")],
             [
                 InlineKeyboardButton("ᴀᴅᴍɪɴs 👮‍♂️", callback_data="admin_menu_btn"),
                 InlineKeyboardButton("ʙʀᴏᴀᴅᴄᴀsᴛ 📢", callback_data="broadcast_btn")
@@ -124,8 +121,7 @@ async def settings_main_menu_2(client, callback_query):
         await edit_msg_with_pic(
             message=callback_query.message,
             text=text,
-            buttons=InlineKeyboardMarkup(buttons),
-            parse_mode=ParseMode.HTML  # Added missing parse_mode
+            buttons=InlineKeyboardMarkup(buttons)
         )
     except Exception as e:
         await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs ᴘᴀɢᴇ 2", show_alert=True)
@@ -161,8 +157,7 @@ async def start_menu_cb(client, callback_query):
     await edit_msg_with_pic(
         message=callback_query.message,
         text=caption,
-        buttons=buttons,
-        parse_mode=ParseMode.HTML  # Added parse_mode for consistency
+        buttons=buttons
     )
 
 
@@ -196,8 +191,7 @@ async def set_source_menu(client, callback_query):
         await edit_msg_with_pic(
             message=callback_query.message,
             text=text,
-            buttons=InlineKeyboardMarkup(buttons),
-            parse_mode=ParseMode.HTML
+            buttons=InlineKeyboardMarkup(buttons)
         )
     except Exception as e:
         await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴏᴜʀᴄᴇ ᴍᴇɴᴜ", show_alert=True)
