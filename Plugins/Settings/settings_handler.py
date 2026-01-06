@@ -128,7 +128,7 @@ async def settings_input_listener(client, message):
                     return
                 
                 # Add to database
-                success = await Seishiro.set_default_channel(cid, title)
+                success = await Seishiro.set_default_channel(cid)
                 
                 if not success:
                     await message.reply("❌ ꜰᴀɪʟᴇᴅ ᴛᴏ ᴀᴅᴅ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴅᴀᴛᴀʙᴀꜱᴇ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ.")
