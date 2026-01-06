@@ -20,7 +20,7 @@ async def cancel_input_cb(client, callback_query):
         get_styled_text("❌ ɪɴᴘᴜᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ."),
         parse_mode=enums.ParseMode.HTML
     )
-    buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ ᴛᴏ ꜱᴇᴛᴛɪɴɢꜱ", callback_data="settings_menu")]]
+    buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="settings_menu")]]
     await callback_query.message.reply_text("ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=InlineKeyboardMarkup(buttons))
 
 
@@ -77,15 +77,6 @@ async def settings_input_listener(client, message):
                 await message.reply("❌ ᴘʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴀ ᴘʜᴏᴛᴏ.")
                 return
 
-        elif state == "waiting_channel":
-            try:
-                cid = int(message.text)
-                await Seishiro.set_default_channel(cid)
-                await message.reply(get_styled_text(f"✅ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ ꜱᴇᴛ: {cid}"), parse_mode=enums.ParseMode.HTML)
-            except ValueError:
-                await message.reply("❌ ɪɴᴠᴀʟɪᴅ ᴄʜᴀɴɴᴇʟ ɪᴅ. ꜱᴇɴᴅ ᴀ ɴᴜᴍʙᴇʀ ʟɪᴋᴇ -100...")
-                return
-
         elif state == "waiting_dump_channel":
             try:
                 cid = int(message.text)
@@ -104,29 +95,18 @@ async def settings_input_listener(client, message):
                 except Exception as e:
                     await message.reply(f"❌ <b>ᴇʀʀᴏʀ:</b> ʙᴏᴛ ᴄᴀɴɴᴏᴛ ᴀᴄᴄᴇꜱꜱ ᴄʜᴀɴɴᴇʟ ᴏʀ ɪɴᴠᴀʟɪᴅ ɪᴅ.\n`{e}`", parse_mode=enums.ParseMode.HTML)
                     return
-                
-                # Check if already exists
-                curr_list = await Seishiro.get_auto_update_channels()
-                if any(c.get('_id') == cid for c in curr_list):
-                     await message.reply("❌ ᴄʜᴀɴɴᴇʟ ᴀʟʀᴇᴀᴅʏ ɪɴ ᴀᴜᴛᴏ ᴜᴘᴅᴀᴛᴇ ʟɪꜱᴛ.")
-                     return
 
-                if await Seishiro.add_auto_update_channel(cid, title):
+                if await Seishiro.set_default_channel(cid, title):
                     pass
                 else:
                     await message.reply("❌ ꜰᴀɪʟᴇᴅ ᴛᴏ ᴀᴅᴅ ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴅʙ.")
                     return
-                
-                
-                curr_list = await Seishiro.get_auto_update_channels()
-                list_text = "\n".join([f"• {c.get('title', 'Unknown')} (`{c.get('_id')}`)" for c in curr_list])
-                
+                    
                 text = get_styled_text(
-                    f"✅ ᴀᴅᴅᴇᴅ ᴀᴜᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ:\n{title} ({cid})\n\n"
-                    f"<b>ᴄᴜʀʀᴇɴᴛ ʟɪꜱᴛ:</b>\n{list_text}"
+                    f"✅ ᴀᴅᴅᴇᴅ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:\n{title} ({cid})"
                 )
                 
-                buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ ᴛᴏ ʟɪꜱᴛ", callback_data="header_auto_update_channels")]]
+                buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")]]
                 await message.reply(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
 
             except ValueError:
@@ -136,17 +116,12 @@ async def settings_input_listener(client, message):
         elif state == "waiting_auc_rem_id":
             try:
                 cid = int(message.text)
-                if await Seishiro.remove_auto_update_channel(cid):
-                     
-                     curr_list = await Seishiro.get_auto_update_channels()
-                     list_text = "\n".join([f"• {c.get('title', 'Unknown')} (`{c.get('_id')}`)" for c in curr_list])
-                     if not list_text: list_text = "ɴᴏɴᴇ"
-
+                if await Seishiro.remove_default_channel(cid):
+                    
                      text = get_styled_text(
-                        f"✅ ʀᴇᴍᴏᴠᴇᴅ ᴀᴜᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴄʜᴀɴɴᴇʟ: {cid}\n\n"
-                        f"<b>ᴄᴜʀʀᴇɴᴛ ʟɪꜱᴛ:</b>\n{list_text}"
+                        f"✅ ʀᴇᴍᴏᴠᴇᴅ Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ: {cid}"
                      )
-                     buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ ᴛᴏ ʟɪꜱᴛ", callback_data="header_auto_update_channels")]]
+                     buttons = [[InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")]]
                      await message.reply(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
                 else:
                      await message.reply("❌ ᴄʜᴀɴɴᴇʟ ɪᴅ ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ʟɪꜱᴛ.")
