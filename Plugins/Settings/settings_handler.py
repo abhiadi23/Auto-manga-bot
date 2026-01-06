@@ -135,23 +135,19 @@ async def settings_input_listener(client, message):
                     return
                 
                 # Success - clear state and send message
-                if user_id in user_states:
-                    del user_states[user_id]
-                
-                text = get_styled_text(
-                    f"✅ ᴀᴅᴅᴇᴅ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:\n\n"
-                    f"📢 <b>ᴛɪᴛʟᴇ:</b> {title}\n"
-                    f"🆔 <b>ɪᴅ:</b> <code>{cid}</code>"
-                )
-                buttons = [
-                    [InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")],
-                    [InlineKeyboardButton("❄ ᴄʟᴏꜱᴇ ❄", callback_data="stats_close")]
-                ]
-                await message.reply(
-                    text=text,
-                    reply_markup=InlineKeyboardMarkup(buttons),
-                    parse_mode=enums.ParseMode.HTML
-                )
+                if success:
+                    await message.reply(
+                        get_styled_text(
+                            f"✅ ᴀᴅᴅᴇᴅ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:\n\n"
+                            f"📢 <b>ᴛɪᴛʟᴇ:</b> {title}\n"
+                            f"🆔 <b>ɪᴅ:</b> <code>{cid}</code>",
+                            reply_markup=InlineKeyboardMarkup(buttons),
+                            parse_mode=enums.ParseMode.HTML)
+                    )
+                    buttons = [
+                        [InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="header_auto_update_channels")],
+                        [InlineKeyboardButton("❄ ᴄʟᴏꜱᴇ ❄", callback_data="stats_close")]
+                    ]
                     
             except ValueError:
                 await message.reply(
