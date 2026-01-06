@@ -62,7 +62,8 @@ async def settings_main_menu(client, callback_query):
         await edit_msg_with_pic(
             message=callback_query.message,
             text=text,
-            buttons=InlineKeyboardMarkup(buttons)
+            buttons=InlineKeyboardMarkup(buttons),
+            enmus.parse_mode='HTML'
         )
     except Exception as e:
         await callback_query.answer("ᴇʀʀᴏʀ ᴏᴘᴇɴɪɴɢ sᴇᴛᴛɪɴɢs")
