@@ -1,7 +1,7 @@
 # Rexbots
 # Don't Remove Credit
 # Telegram Channel @RexBots_Official 
-#Supoort group @rexbotschat
+# Support group @rexbotschat
 
 import motor.motor_asyncio
 import logging
@@ -91,9 +91,6 @@ class Master:
         except Exception as e:
             logging.error(f"Error checking if user {user_id} is banned: {e}")
             return False
-        except Exception as e:
-            logging.error(f"Error checking if user {user_id} is banned: {e}")
-            return False
 
     async def ban_user(self, user_id: int, reason: str = None, duration: int = 0) -> bool:
         """
@@ -133,6 +130,21 @@ class Master:
             logging.error(f"Error unbanning user {user_id}: {e}")
             return False
 
+    async def get_banned_users(self) -> List[dict]:
+        """
+        Get list of all banned users
+        
+        Returns:
+            List of dictionaries containing banned user information
+        """
+        try:
+            cursor = self.ban_data.find({"ban_status.is_banned": True})
+            banned_users = await cursor.to_list(length=None)
+            return banned_users
+        except Exception as e:
+            logging.error(f"Error getting banned users: {e}")
+            return []
+
     async def is_admin(self, user_id: int) -> bool:
         return bool(await self.admins_data.find_one({"_id": int(user_id)}))
 
@@ -170,7 +182,6 @@ class Master:
     async def refresh_admins(self):
         """Load admins from DB to memory"""
         await self.list_admins()
-
 
     async def add_fsub_channel(self, channel_id: int) -> bool:
         try:
@@ -279,14 +290,13 @@ class Master:
             int: Check interval in seconds (default: 300)
         """
         try:
-            Config = await self.interval_time.find_one({"_id": "bot_config"})
-            if Config and "check_interval" in Config:
-                return Config["check_interval"]
+            config = await self.interval_time.find_one({"_id": "bot_config"})
+            if config and "check_interval" in config:
+                return config["check_interval"]
             return 300  # Default 5 minutes
         except Exception as e:
             logging.error(f"Error getting check interval: {e}")
             return 300
-
 
     async def get_default_channel(self) -> Optional[int]:
         """Get the default upload channel ID"""
@@ -316,8 +326,18 @@ class Master:
     async def remove_default_channel(self) -> bool:
         """Remove the default upload channel"""
         try:
+            # First check if default channel exists
+            existing_channel = await self.get_default_channel()
+            if existing_channel is None:
+                logging.info("No default channel found to remove")
+                return False
+                
+            # If channel exists, delete it
             result = await self.channel_data.delete_one({"_id": "default_channel"})
-            return result.deleted_count > 0
+            if result.deleted_count > 0:
+                logging.info(f"Default channel {existing_channel} removed successfully")
+                return True
+            return False
         except Exception as e:
             logging.error(f"Error removing default channel: {e}")
             return False
@@ -417,7 +437,6 @@ class Master:
         except Exception as e:
             logging.error(f"Error clearing upload state: {e}")
             return False
-
 
     async def manga_store_data(self, chapter_id: str, manga_id: str, manga_title: str, chapter_number: str, file_id: str = None) -> bool:
         """
@@ -578,7 +597,6 @@ class Master:
             logging.error(f"Error getting cached manga: {e}")
             return None
 
-
     async def get_caption(self) -> Optional[str]:
         """Get the current caption format template"""
         try:
@@ -609,7 +627,6 @@ class Master:
         except Exception as e:
             logging.error(f"Error deleting caption: {e}")
             return False
-
 
     async def get_watermark(self) -> Optional[dict]:
         """Get the watermark configuration"""
@@ -671,15 +688,15 @@ class Master:
             logging.error(f"Error deleting watermark: {e}")
             return False
 
-
     async def get_monitoring_status(self) -> bool:
-        """Get monitoring status (True = Running, False = Paused)"""
+        """Get monitoring status (True = Running/Enabled, False = Paused/Disabled)"""
         try:
             doc = await self.database['bot_settings'].find_one({"_id": "monitoring_status"})
+            # Default is True (enabled/on) if not set
             return doc.get("enabled", True) if doc else True
         except Exception as e:
             logging.error(f"Error getting monitoring status: {e}")
-            return True
+            return True  # Default to enabled on error
 
     async def set_monitoring_status(self, enabled: bool) -> bool:
         """Set monitoring status"""
@@ -694,18 +711,17 @@ class Master:
             logging.error(f"Error setting monitoring status: {e}")
             return False
 
-
     async def get_config(self, key: str, default=None):
-        """Generic get Config"""
+        """Generic get config"""
         try:
             doc = await self.database['bot_config'].find_one({"_id": key})
             return doc.get("value", default) if doc else default
         except Exception as e:
-            logging.error(f"Error getting Config {key}: {e}")
+            logging.error(f"Error getting config {key}: {e}")
             return default
 
     async def set_config(self, key: str, value):
-        """Generic set Config"""
+        """Generic set config"""
         try:
             await self.database['bot_config'].update_one(
                 {"_id": key},
@@ -714,17 +730,16 @@ class Master:
             )
             return True
         except Exception as e:
-            logging.error(f"Error setting Config {key}: {e}")
+            logging.error(f"Error setting config {key}: {e}")
             return False
 
-    
     async def get_auto_update_channels(self) -> List[dict]:
         """Get list of auto update channels"""
         try:
             cursor = self.database['auto_update_channels'].find({})
             return await cursor.to_list(None)
         except Exception as e:
-            logging.error(f"Error getting auc: {e}")
+            logging.error(f"Error getting auto update channels: {e}")
             return []
 
     async def add_auto_update_channel(self, channel_id: int, title: str) -> bool:
@@ -737,7 +752,7 @@ class Master:
             )
             return True
         except Exception as e:
-            logging.error(f"Error adding auc {channel_id}: {e}")
+            logging.error(f"Error adding auto update channel {channel_id}: {e}")
             return False
 
     async def remove_auto_update_channel(self, channel_id: int) -> bool:
@@ -746,7 +761,7 @@ class Master:
             res = await self.database['auto_update_channels'].delete_one({"_id": channel_id})
             return res.deleted_count > 0
         except Exception as e:
-            logging.error(f"Error removing auc {channel_id}: {e}")
+            logging.error(f"Error removing auto update channel {channel_id}: {e}")
             return False
 
     async def clear_auto_update_channels(self) -> bool:
@@ -755,7 +770,7 @@ class Master:
             await self.database['auto_update_channels'].delete_many({})
             return True
         except Exception as e:
-            logging.error(f"Error clearing auc: {e}")
+            logging.error(f"Error clearing auto update channels: {e}")
             return False
 
 
@@ -765,4 +780,4 @@ Seishiro = Master(Config.DB_URL, Config.DB_NAME)
 # Rexbots
 # Don't Remove Credit
 # Telegram Channel @RexBots_Official 
-#Supoort group @rexbotschat
+# Support group @rexbotschat
