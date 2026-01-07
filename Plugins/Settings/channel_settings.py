@@ -72,7 +72,7 @@ async def auc_rem_channel_cb(client, callback_query):
 @Client.on_callback_query(filters.regex("^auc_view_channels$"))
 async def auc_view_channels_cb(client, callback_query):
     try:
-        auto_ch = await Seishiro.get_default_channel(channel_id)
+        auto_ch = await Seishiro.get_default_channel(default_channel)
         
         if not auto_ch:
             text = get_styled_text("<b>🤖 Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n➥ ɴᴏ ᴄʜᴀɴɴᴇʟ ғᴏᴜɴᴅ")
@@ -80,7 +80,7 @@ async def auc_view_channels_cb(client, callback_query):
             text = get_styled_text("<b>🤖 Uᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ</b>\n\n")
             for c in auto_ch:
                 db_title = c.get('title', 'ᴜɴᴋɴᴏᴡɴ')
-                cid = c.get('_id')
+                cid = c.get('default_channel')
                 try:
                     chat = await client.get_chat(int(cid))
                     text += f"• {chat.title}\n  ɪᴅ: `{cid}`"
