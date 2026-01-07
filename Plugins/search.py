@@ -37,24 +37,8 @@ try:
 except ImportError:
     pass
 
-
 def get_api_class(source):
     return SITES.get(source)
-
-
-def to_small_caps(text):
-    """Convert text to small caps style"""
-    small_caps_map = {
-        'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ',
-        'h': 'ʜ', 'i': 'ɪ', 'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ',
-        'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ʀ', 's': 's', 't': 'ᴛ', 'u': 'ᴜ',
-        'v': 'ᴠ', 'w': 'ᴡ', 'x': x', 'y': 'ʏ', 'z': 'ᴢ',
-        'A': 'ᴀ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'ᴇ', 'F': 'ғ', 'G': 'ɢ',
-        'H': 'ʜ', 'I': 'ɪ', 'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ᴍ', 'N': 'ɴ',
-        'O': 'ᴏ', 'P': 'ᴘ', 'Q': 'ǫ', 'R': 'ʀ', 'S': s', 'T': 'ᴛ', 'U': 'ᴜ',
-        'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x', 'Y': 'ʏ', 'Z': 'ᴢ'
-    }
-    return ''.join(small_caps_map.get(char, char) for char in text)
 
 
 @Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "settings", "search"]))
@@ -73,12 +57,12 @@ async def search_command_handler(client, message):
     """Handle /search command for manga queries"""
     parts = message.text.split(maxsplit=1)
     if len(parts) < 2:
-        await message.reply(f"❌ {to_small_caps('usage')}: /search <query>")
+        await message.reply("❌ ᴜꜱᴀɢᴇ: /search <query>")
         return
     
     query = parts[1].strip()
     if len(query) < 2:
-        await message.reply(f"❌ {to_small_caps('query too short')}.")
+        await message.reply("❌ ǫᴜᴇʀʏ ᴛᴏᴏ ꜱʜᴏʀᴛ.")
         return
     
     buttons = []
@@ -94,13 +78,13 @@ async def search_command_handler(client, message):
         buttons.append(row)
     
     if not buttons:
-        await message.reply(f"❌ {to_small_caps('no sources available')}.")
+        await message.reply("❌ ɴᴏ ꜱᴏᴜʀᴄᴇꜱ ᴀᴠᴀɪʟᴀʙʟᴇ.")
         return
         
-    buttons.append([InlineKeyboardButton(f"❌ {to_small_caps('close')}", callback_data="stats_close")])
+    buttons.append([InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="stats_close")])
     
     await message.reply(
-        f"<b>🔍 {to_small_caps('search')}:</b> <code>{query}</code>\n\n{to_small_caps('select a source to search in')}:",
+        f"<b>🔍 ꜱᴇᴀʀᴄʜ:</b> <code>{query}</code>\n\nꜱᴇʟᴇᴄᴛ ᴀ ꜱᴏᴜʀᴄᴇ ᴛᴏ ꜱᴇᴀʀᴄʜ ɪɴ:",
         reply_markup=InlineKeyboardMarkup(buttons),
         parse_mode=enums.ParseMode.HTML
     )
@@ -110,39 +94,34 @@ async def search_command_handler(client, message):
 async def search_source_cb(client, callback_query):
     parts = callback_query.data.split("_", 3)
     source = parts[2]
-    query = parts[3]  # this might be truncated
+    query = parts[3]  # This might be truncated
     
-    API = get_api_class(source)
-    if not API:
-        await callback_query.answer(to_small_caps("source not available"), show_alert=True)
+    api_class = get_api_class(source)
+    if not api_class:
+        await callback_query.answer("ꜱᴏᴜʀᴄᴇ ɴᴏᴛ ᴀᴠᴀɪʟᴀʙʟᴇ", show_alert=True)
         return
         
     status_msg = await callback_query.message.edit_text(
-        f"<i>🔍 {to_small_caps('searching')} {source}...</i>", 
+        f"<i>🔍 ꜱᴇᴀʀᴄʜɪɴɢ {source}...</i>", 
         parse_mode=enums.ParseMode.HTML
     )
     
-    try:
-        async with API(Config) as api:
-            results = await api.search_manga(query)
-    except Exception as e:
-        logger.error(f"Search error: {e}", exc_info=True)
-        await status_msg.edit_text(f"❌ {to_small_caps('search failed')}: {e}")
-        return
+    async with api_class(Config) as api:
+        results = await api.search_manga(query)
     
     if not results:
-        await status_msg.edit_text(f"❌ {to_small_caps('no results found in')} {source}.")
+        await status_msg.edit_text(f"❌ ɴᴏ ʀᴇꜱᴜʟᴛꜱ ꜰᴏᴜɴᴅ ɪɴ {source}.")
         return
 
     buttons = []
-    for m in results[:10]:  # top 10
+    for m in results[:10]:  # Top 10
         title = m['title']
         buttons.append([InlineKeyboardButton(title, callback_data=f"view_{source}_{m['id']}")])
     
-    buttons.append([InlineKeyboardButton(f"❌ {to_small_caps('close')}", callback_data="stats_close")])
+    buttons.append([InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="stats_close")])
     
     await status_msg.edit_text(
-        f"<b>{to_small_caps('found')} {len(results)} {to_small_caps('results in')} {source}:</b>",
+        f"<b>ꜰᴏᴜɴᴅ {len(results)} ʀᴇꜱᴜʟᴛꜱ ɪɴ {source}:</b>",
         reply_markup=InlineKeyboardMarkup(buttons),
         parse_mode=enums.ParseMode.HTML
     )
@@ -154,33 +133,28 @@ async def view_manga_cb(client, callback_query):
     source = parts[1]
     manga_id = parts[2]
     
-    API = get_api_class(source)
-    if not API:
+    api_class = get_api_class(source)
+    if not api_class:
         return
 
-    try:
-        async with API(Config) as api:
-            info = await api.get_manga_info(manga_id)
-    except Exception as e:
-        logger.error(f"Manga info error: {e}", exc_info=True)
-        await callback_query.answer(to_small_caps("error fetching details"), show_alert=True)
-        return
+    async with api_class(Config) as api:
+        info = await api.get_manga_info(manga_id)
     
     if not info:
-        await callback_query.answer(to_small_caps("error fetching details"), show_alert=True)
+        await callback_query.answer("ᴇʀʀᴏʀ ꜰᴇᴛᴄʜɪɴɢ ᴅᴇᴛᴀɪʟꜱ", show_alert=True)
         return
 
     caption = (
         f"<b>📖 {info['title']}</b>\n"
-        f"<b>{to_small_caps('source')}:</b> {source}\n"
-        f"<b>ID:</b> <code>{manga_id}</code>\n\n"
-        f"{to_small_caps('select an option')}:"
+        f"<b>ꜱᴏᴜʀᴄᴇ:</b> {source}\n"
+        f"<b>ɪᴅ:</b> <code>{manga_id}</code>\n\n"
+        f"ꜱᴇʟᴇᴄᴛ ᴀɴ ᴏᴘᴛɪᴏɴ:"
     )
     
     buttons = [
-        [InlineKeyboardButton(f"⬇ {to_small_caps('download chapters')}", callback_data=f"chapters_{source}_{manga_id}_0")],
-        [InlineKeyboardButton(f"⬇ {to_small_caps('custom download (range)')}", callback_data=f"custom_dl_{source}_{manga_id}")],
-        [InlineKeyboardButton(f"❌ {to_small_caps('close')}", callback_data="stats_close")] 
+        [InlineKeyboardButton("⬇ ᴅᴏᴡɴʟᴏᴀᴅ ᴄʜᴀᴘᴛᴇʀꜱ", callback_data=f"chapters_{source}_{manga_id}_0")],
+        [InlineKeyboardButton("⬇ ᴄᴜꜱᴛᴏᴍ ᴅᴏᴡɴʟᴏᴀᴅ (ʀᴀɴɢᴇ)", callback_data=f"custom_dl_{source}_{manga_id}")],
+        [InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="stats_close")] 
     ]
     
     msg = callback_query.message
@@ -191,29 +165,29 @@ async def view_manga_cb(client, callback_query):
 async def chapters_list_cb(client, callback_query):
     parts = callback_query.data.split("_")
     if len(parts) < 4:
-        await callback_query.answer(f"❌ {to_small_caps('invalid callback data')}", show_alert=True)
+        await callback_query.answer("❌ ɪɴᴠᴀʟɪᴅ ᴄᴀʟʟʙᴀᴄᴋ ᴅᴀᴛᴀ", show_alert=True)
         return
     
     source = parts[1]
     offset = int(parts[-1])  # Last part is always offset
     manga_id = "_".join(parts[2:-1])  # Everything between source and offset
     
-    API = get_api_class(source)
-    async with API(Config) as api:
+    api_class = get_api_class(source)
+    async with api_class(Config) as api:
         chapters = await api.get_manga_chapters(manga_id, limit=10, offset=offset)
     
     if not chapters and offset == 0:
-        await callback_query.answer(to_small_caps("no chapters found"), show_alert=True)
+        await callback_query.answer("ɴᴏ ᴄʜᴀᴘᴛᴇʀꜱ ꜰᴏᴜɴᴅ.", show_alert=True)
         return
     elif not chapters:
-        await callback_query.answer(to_small_caps("no more chapters"), show_alert=True)
+        await callback_query.answer("ɴᴏ ᴍᴏʀᴇ ᴄʜᴀᴘᴛᴇʀꜱ.", show_alert=True)
         return
 
     buttons = []
     row = []
     for ch in chapters:
         ch_num = ch['chapter']
-        btn_text = f"{to_small_caps('ch')} {ch_num}"
+        btn_text = f"ᴄʜ {ch_num}"
         
         row.append(InlineKeyboardButton(btn_text, callback_data=f"dl_ask_{source}_{manga_id}_{ch['id'][:20]}"))
         if len(row) == 2:
@@ -224,17 +198,13 @@ async def chapters_list_cb(client, callback_query):
     
     nav = []
     if offset >= 10:
-        nav.append(InlineKeyboardButton(f"⬅ {to_small_caps('prev')}", callback_data=f"chapters_{source}_{manga_id}_{offset-10}"))
-    nav.append(InlineKeyboardButton(f"{to_small_caps('next')} ➡", callback_data=f"chapters_{source}_{manga_id}_{offset+10}"))
+        nav.append(InlineKeyboardButton("⬅ ᴘʀᴇᴠ", callback_data=f"chapters_{source}_{manga_id}_{offset-10}"))
+    nav.append(InlineKeyboardButton("ɴᴇxᴛ ➡", callback_data=f"chapters_{source}_{manga_id}_{offset+10}"))
     buttons.append(nav)
     
-    buttons.append([InlineKeyboardButton(f"⬅ {to_small_caps('back to manga')}", callback_data=f"view_{source}_{manga_id}")])
+    buttons.append([InlineKeyboardButton("⬅ ʙᴀᴄᴋ ᴛᴏ ᴍᴀɴɢᴀ", callback_data=f"view_{source}_{manga_id}")])
     
-    caption_text = (
-        f"<b>{to_small_caps('select chapter to download (standard)')}:</b>\n"
-        f"{to_small_caps('page')}: {int(offset/10)+1}\n"
-        f"<i>{to_small_caps('note')}: {to_small_caps('uploads to default channel')}.</i>"
-    )
+    caption_text = f"<b>ꜱᴇʟᴇᴄᴛ ᴄʜᴀᴘᴛᴇʀ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ (ꜱᴛᴀɴᴅᴀʀᴅ):</b>\nᴘᴀɢᴇ: {int(offset/10)+1}\n<i>ɴᴏᴛᴇ: ᴜᴘʟᴏᴀᴅꜱ ᴛᴏ ᴅᴇꜰᴀᴜʟᴛ ᴄʜᴀɴɴᴇʟ.</i>"
     
     try:
         if callback_query.message.photo:
@@ -242,7 +212,7 @@ async def chapters_list_cb(client, callback_query):
         else:
             await callback_query.message.edit_text(caption_text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=enums.ParseMode.HTML)
     except Exception as e:
-        logger.error(f"Edit error: {e}")
+        print(f"ᴇᴅɪᴛ ᴇʀʀᴏʀ: {e}")
 
 
 @Client.on_callback_query(filters.regex("^custom_dl_"))
@@ -260,13 +230,13 @@ async def custom_dl_start_cb(client, callback_query):
     }
     
     await callback_query.message.reply_text(
-        f"<b>⬇ {to_small_caps('custom download mode')}</b>\n\n"
-        f"{to_small_caps('please enter the chapter number you want to download')}.\n"
-        f"{to_small_caps('you can download a single chapter or a range')}.\n\n"
-        f"<b>{to_small_caps('examples')}:</b>\n"
-        f"<code>5</code> ({to_small_caps('download chapter')} 5)\n"
-        f"<code>10-20</code> ({to_small_caps('download chapters')} 10 {to_small_caps('to')} 20)\n\n"
-        f"<i>{to_small_caps('downloads will be sent to your private chat')}.</i>",
+        "<b>⬇ ᴄᴜꜱᴛᴏᴍ ᴅᴏᴡɴʟᴏᴀᴅ ᴍᴏᴅᴇ</b>\n\n"
+        "ᴘʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴛʜᴇ ᴄʜᴀᴘᴛᴇʀ ɴᴜᴍʙᴇʀ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ.\n"
+        "ʏᴏᴜ ᴄᴀɴ ᴅᴏᴡɴʟᴏᴀᴅ ᴀ ꜱɪɴɢʟᴇ ᴄʜᴀᴘᴛᴇʀ ᴏʀ ᴀ ʀᴀɴɢᴇ.\n\n"
+        "<b>ᴇxᴀᴍᴘʟᴇꜱ:</b>\n"
+        "<code>5</code> (ᴅᴏᴡɴʟᴏᴀᴅ ᴄʜᴀᴘᴛᴇʀ 5)\n"
+        "<code>10-20</code> (ᴅᴏᴡɴʟᴏᴀᴅ ᴄʜᴀᴘᴛᴇʀꜱ 10 ᴛᴏ 20)\n\n"
+        "<i>ᴅᴏᴡɴʟᴏᴀᴅꜱ ᴡɪʟʟ ʙᴇ ꜱᴇɴᴛ ᴛᴏ ʏᴏᴜʀ ᴘʀɪᴠᴀᴛᴇ ᴄʜᴀᴛ.</i>",
         parse_mode=enums.ParseMode.HTML
     )
     await callback_query.answer()
@@ -281,13 +251,13 @@ async def custom_dl_input_handler(client, message):
         
     data = user_data.get(user_id)
     if not data:
-        await message.reply(f"❌ {to_small_caps('session expired')}. {to_small_caps('please search again')}.")
+        await message.reply("❌ ꜱᴇꜱꜱɪᴏɴ ᴇxᴘɪʀᴇᴅ. ᴘʟᴇᴀꜱᴇ ꜱᴇᴀʀᴄʜ ᴀɢᴀɪɴ.")
         return
         
     source = data['source']
     manga_id = data['manga_id']
     
-    target_chapters = []
+    target_chapters = []  # List of floats/strings numbers
     is_range = False
     
     try:
@@ -299,15 +269,15 @@ async def custom_dl_input_handler(client, message):
         else:
             target_chapters.append(float(text))
     except ValueError:
-        await message.reply(f"❌ {to_small_caps('invalid format')}. {to_small_caps('please enter numbers like')} `5` {to_small_caps('or')} `10-20`.")
+        await message.reply("❌ ɪɴᴠᴀʟɪᴅ ꜰᴏʀᴍᴀᴛ. ᴘʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ɴᴜᴍʙᴇʀꜱ ʟɪᴋᴇ `5` ᴏʀ `10-20`.")
         return
 
-    status_msg = await message.reply(f"<i>⏳ {to_small_caps('fetching chapter list')}...</i>", parse_mode=enums.ParseMode.HTML)
+    status_msg = await message.reply("<i>⏳ ꜰᴇᴛᴄʜɪɴɢ ᴄʜᴀᴘᴛᴇʀ ʟɪꜱᴛ...</i>", parse_mode=enums.ParseMode.HTML)
     
-    API = get_api_class(source)
+    api_class = get_api_class(source)
     all_chapters = []
     
-    async with API(Config) as api:
+    async with api_class(Config) as api:
         offset = 0
         while True:
             batch = await api.get_manga_chapters(manga_id, limit=100, offset=offset)
@@ -321,7 +291,7 @@ async def custom_dl_input_handler(client, message):
                 break  # Safety break
             
     if not all_chapters:
-        await status_msg.edit_text(f"❌ {to_small_caps('no chapters found')}.")
+        await status_msg.edit_text("❌ ɴᴏ ᴄʜᴀᴘᴛᴇʀꜱ ꜰᴏᴜɴᴅ.")
         return
 
     to_download = []
@@ -338,10 +308,10 @@ async def custom_dl_input_handler(client, message):
             pass  # Skip non-numeric chapters
              
     if not to_download:
-        await status_msg.edit_text(f"❌ {to_small_caps('no chapters found for input')}: {text}")
+        await status_msg.edit_text(f"❌ ɴᴏ ᴄʜᴀᴘᴛᴇʀꜱ ꜰᴏᴜɴᴅ ꜰᴏʀ ɪɴᴘᴜᴛ: {text}")
         return
 
-    await status_msg.edit_text(f"✅ {to_small_caps('found')} {len(to_download)} {to_small_caps('chapters')}. {to_small_caps('starting download')}...")
+    await status_msg.edit_text(f"✅ ꜰᴏᴜɴᴅ {len(to_download)} ᴄʜᴀᴘᴛᴇʀꜱ. ꜱᴛᴀʀᴛɪɴɢ ᴅᴏᴡɴʟᴏᴀᴅ...")
     
     to_download.sort(key=lambda x: float(x['chapter']))
     
@@ -357,18 +327,14 @@ async def execute_download(client, target_chat_id, source, manga_id, chapter_id,
     if not status_chat_id:
         status_chat_id = target_chat_id
     
-    status_msg = await client.send_message(
-        status_chat_id, 
-        f"<i>⏳ {to_small_caps('initializing download')}...</i>", 
-        parse_mode=enums.ParseMode.HTML
-    )
+    status_msg = await client.send_message(status_chat_id, "<i>⏳ ɪɴɪᴛɪᴀʟɪᴢɪɴɢ ᴅᴏᴡɴʟᴏᴀᴅ...</i>", parse_mode=enums.ParseMode.HTML)
     
     try:
-        API = get_api_class(source)
-        async with API(Config) as api:
+        api_class = get_api_class(source)
+        async with api_class(Config) as api:
             meta = await api.get_chapter_info(chapter_id)
             if not meta:
-                await status_msg.edit_text(f"❌ {to_small_caps('failed to get chapter info')}.")
+                await status_msg.edit_text("❌ ꜰᴀɪʟᴇᴅ ᴛᴏ ɢᴇᴛ ᴄʜᴀᴘᴛᴇʀ ɪɴꜰᴏ.")
                 return
             
             if meta.get('manga_title') in ['Unknown', None]:
@@ -379,23 +345,20 @@ async def execute_download(client, target_chat_id, source, manga_id, chapter_id,
             images = await api.get_chapter_images(chapter_id)
             
         if not images:
-            await status_msg.edit_text(f"❌ {to_small_caps('no images in chapter')} {meta.get('chapter', '?')}")
+            await status_msg.edit_text(f"❌ ɴᴏ ɪᴍᴀɢᴇꜱ ɪɴ ᴄʜᴀᴘᴛᴇʀ {meta.get('chapter', '?')}")
             return
             
         chapter_dir = Path(Config.DOWNLOAD_DIR) / f"{source}_{manga_id}" / f"ch_{meta['chapter']}"
         chapter_dir.mkdir(parents=True, exist_ok=True)
         
-        await status_msg.edit_text(
-            f"<i>⬇ {to_small_caps('downloading')} {len(images)} {to_small_caps('pages')}...</i>", 
-            parse_mode=enums.ParseMode.HTML
-        )
+        await status_msg.edit_text(f"<i>⬇ ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ {len(images)} ᴘᴀɢᴇꜱ...</i>", parse_mode=enums.ParseMode.HTML)
         
         async with Downloader(Config) as downloader:
             if not await downloader.download_images(images, chapter_dir):
-                await status_msg.edit_text(f"❌ {to_small_caps('download failed')}.")
+                await status_msg.edit_text("❌ ᴅᴏᴡɴʟᴏᴀᴅ ꜰᴀɪʟᴇᴅ.")
                 return
             
-            await status_msg.edit_text(f"<i>⚙️ {to_small_caps('processing pdf')}...</i>", parse_mode=enums.ParseMode.HTML)
+            await status_msg.edit_text("<i>⚙️ ᴘʀᴏᴄᴇꜱꜱɪɴɢ ᴘᴅꜰ...</i>", parse_mode=enums.ParseMode.HTML)
             
             file_type = await Seishiro.get_config("file_type", "pdf")
             quality = await Seishiro.get_config("image_quality")
@@ -430,11 +393,11 @@ async def execute_download(client, target_chat_id, source, manga_id, chapter_id,
                 outro_p.unlink()
             
             if not final_path:
-                await status_msg.edit_text(f"❌ {to_small_caps('failed to create file')}.")
+                await status_msg.edit_text("❌ ꜰᴀɪʟᴇᴅ ᴛᴏ ᴄʀᴇᴀᴛᴇ ꜰɪʟᴇ.")
                 return
             
-            await status_msg.edit_text(f"<i>⬆ {to_small_caps('uploading')}...</i>", parse_mode=enums.ParseMode.HTML)
-            caption = f"<b>{meta['manga_title']} - {to_small_caps('ch')} {meta['chapter']}</b>"
+            await status_msg.edit_text(f"<i>⬆ ᴜᴘʟᴏᴀᴅɪɴɢ...</i>", parse_mode=enums.ParseMode.HTML)
+            caption = f"<b>{meta['manga_title']} - ᴄʜ {meta['chapter']}</b>"
             
             await client.send_document(
                 chat_id=target_chat_id,
@@ -450,8 +413,8 @@ async def execute_download(client, target_chat_id, source, manga_id, chapter_id,
             await status_msg.delete()
 
     except Exception as e:
-        logger.error(f"DL Error: {e}", exc_info=True)
-        await status_msg.edit_text(f"❌ {to_small_caps('error')}: {e}")
+        logger.error(f"ᴅʟ ᴇʀʀᴏʀ: {e}", exc_info=True)
+        await status_msg.edit_text(f"❌ ᴇʀʀᴏʀ: {e}")
 
 
 @Client.on_callback_query(filters.regex("^dl_ask_"))
@@ -464,7 +427,7 @@ async def dl_ask_cb(client, callback_query):
     db_channel = await Seishiro.get_default_channel()
     channel_id = int(db_channel) if db_channel else Config.CHANNEL_ID
     
-    await callback_query.answer(to_small_caps("starting download") + "...", show_alert=False)
+    await callback_query.answer("ꜱᴛᴀʀᴛɪɴɢ ᴅᴏᴡɴʟᴏᴀᴅ...", show_alert=False)
     await execute_download(client, channel_id, source, manga_id, chapter_id, callback_query.message.chat.id)
 
 
