@@ -3,7 +3,6 @@
 # Telegram Channel @RexBots_Official 
 # Support group @rexbotschat
 
-
 from pyrogram import Client, filters, enums
 from Database.database import Seishiro
 from Plugins.helper import user_states, get_styled_text
@@ -141,7 +140,7 @@ async def settings_input_listener(client, message):
                             f"✅ ᴀᴅᴅᴇᴅ ᴜᴘʟᴏᴀᴅ ᴄʜᴀɴɴᴇʟ:\n\n"
                             f"📢 <b>ᴛɪᴛʟᴇ:</b> {title}\n"
                             f"🆔 <b>ɪᴅ:</b> <code>{cid}</code>"),
-                            parse_mode=enums.ParseMode.HTML
+                        parse_mode=enums.ParseMode.HTML
                     )
                     
             except ValueError:
