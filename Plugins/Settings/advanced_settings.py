@@ -23,15 +23,15 @@ async def set_hyperlink_cb(client, callback_query):
 @Client.on_callback_query(filters.regex("^set_regex_btn$"))
 async def set_regex_cb(client, callback_query):
     text = get_styled_text(
-        "<b>🔢 Set Regex Replacement</b>\n\n"
-        "Send regex pattern to filter/replace in titles.\n"
-        "Format: `pattern=replacement`\n"
-        "<i>Send regex now...</i>\n"
-        "<i>(Auto-close in 30s)</i>"
+        "<b>🔢 Sᴇᴛ Rᴇɢᴇx Rᴇᴘʟᴀᴄᴇᴍᴇɴᴛ</b>\n\n"
+        "Sᴇɴᴅ ʀᴇɢᴇx ᴘᴀᴛᴛᴇʀɴ ᴛᴏ ғɪʟᴛᴇʀ/ʀᴇᴘʟᴀᴄᴇ ɪɴ ᴛɪᴛʟᴇs.\n"
+        "Fᴏʀᴍᴀᴛ: `pattern=replacement`\n"
+        "<i>Sᴇɴᴅ ʀᴇɢᴇx ɴᴏᴡ...</i>\n"
+        "<i>(Aᴜᴛᴏ-ᴄʟᴏsᴇ ɪɴ 30s)</i>"
     )
     user_states[callback_query.from_user.id] = {"state": "waiting_regex"}
     
-    buttons = [[InlineKeyboardButton("❌ cancel", callback_data="cancel_input")]]
+    buttons = [[InlineKeyboardButton("❌ Cᴀɴᴄᴇʟ", callback_data="cancel_input")]]
     await edit_msg_with_pic(callback_query.message, text, InlineKeyboardMarkup(buttons))
     
     asyncio.create_task(timeout_handler(client, callback_query.message, callback_query.from_user.id, "waiting_regex"))
