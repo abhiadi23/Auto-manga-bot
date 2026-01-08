@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
-import hashlib # Added for ID hashing
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -40,53 +40,93 @@ class WebCentralAPI:
         async with aiohttp.ClientSession(headers=self.headers) as session:
             for url in urls:
                 try:
+                    logger.info(f"Fetching WebCentral: {url}")
                     async with session.get(url, timeout=30) as resp:
-                        if resp.status != 200: continue
+                        if resp.status != 200:
+                            logger.error(f"WebCentral returned status {resp.status}")
+                            continue
                         html = await resp.text()
                         soup = BeautifulSoup(html, "html.parser")
                         
-                        links = soup.find_all("a", href=re.compile(r"/chapters/"))
+                        # Try multiple selectors to find chapter links
+                        # Look for any link containing chapter/episode keywords
+                        links = soup.find_all("a", href=True)
+                        logger.info(f"Found {len(links)} total links on page")
                         
                         seen_ids = set()
+                        potential_chapters = []
+                        
                         for a in links:
-                            href = a.get("href")
-                            full_url = urljoin(self.base_url, href)
+                            href = a.get("href", "")
                             
+                            # Filter for chapter-like URLs
+                            if not any(keyword in href.lower() for keyword in ['/chapter', '/episode', '/read']):
+                                continue
+                            
+                            full_url = urljoin(self.base_url, href)
                             text_content = a.get_text(separator=" ", strip=True)
                             
-                            m = re.search(r"(.+?)\s+(?:Episode|Chapter)\s+(\d+(?:\.\d+)?)", text_content, re.I)
+                            if not text_content or len(text_content) < 3:
+                                continue
                             
+                            # Try multiple regex patterns
+                            manga_title = None
+                            chap_num = None
+                            
+                            # Pattern 1: "Title Chapter 123"
+                            m = re.search(r"(.+?)\s+(?:Episode|Chapter|Ch\.?|Ep\.?)\s+(\d+(?:\.\d+)?)", text_content, re.I)
                             if m:
                                 manga_title = m.group(1).strip()
                                 chap_num = m.group(2)
-                                full_title = f"{manga_title} - Chapter {chap_num}"
-                            else:
+                            
+                            # Pattern 2: "Chapter 123 - Title" or just "Chapter 123"
+                            if not manga_title:
+                                m = re.search(r"(?:Chapter|Episode|Ch\.?|Ep\.?)\s+(\d+(?:\.\d+)?)\s*[-:]?\s*(.*)", text_content, re.I)
+                                if m:
+                                    chap_num = m.group(1)
+                                    manga_title = m.group(2).strip() if m.group(2) else "Unknown"
+                            
+                            # Pattern 3: Extract from URL if text parsing fails
+                            if not manga_title or not chap_num:
+                                url_match = re.search(r'/([^/]+)/(?:chapter|episode|ch|ep)[-_]?(\d+(?:\.\d+)?)', href, re.I)
+                                if url_match:
+                                    manga_title = url_match.group(1).replace('-', ' ').replace('_', ' ').title()
+                                    chap_num = url_match.group(2)
+                            
+                            # Fallback
+                            if not manga_title:
                                 manga_title = text_content[:50]
+                            if not chap_num:
                                 chap_num = "0"
-                                full_title = text_content
                             
-                                full_title = text_content
-                            
+                            full_title = f"{manga_title} - Chapter {chap_num}"
                             chap_id_hash = hashlib.md5(full_url.encode()).hexdigest()
                             
                             if chap_id_hash not in seen_ids:
                                 seen_ids.add(chap_id_hash)
-                                chapters.append({
+                                potential_chapters.append({
                                     'id': chap_id_hash,
-                                    'manga_id': chap_id_hash, # Keeping consistent, though URL might be better for manga_id if used for finding series
+                                    'manga_id': chap_id_hash,
                                     'manga_title': manga_title,
                                     'chapter': chap_num,
                                     'title': full_title,
                                     'group': "WebCentral",
                                     'url': full_url
                                 })
-                                
-                                if len(chapters) >= limit:
-                                    break
+                        
+                        logger.info(f"Found {len(potential_chapters)} potential chapters after filtering")
+                        
+                        # Add to main list
+                        for chap in potential_chapters:
+                            if len(chapters) >= limit:
+                                break
+                            chapters.append(chap)
+                            logger.debug(f"Added: {chap['title']} - {chap['url']}")
                                 
                 except Exception as e:
-                    logger.error(f"WebCentral check failed: {e}")
+                    logger.error(f"WebCentral check failed: {e}", exc_info=True)
                     
+        logger.info(f"Total chapters found: {len(chapters)}")
         return chapters
 
     async def get_manga_info(self, manga_id: str) -> Optional[Dict]:
@@ -94,14 +134,15 @@ class WebCentralAPI:
         try:
             async with aiohttp.ClientSession(headers=self.headers) as session:
                 async with session.get(manga_id, timeout=30) as resp:
-                    if resp.status != 200: return {'id': manga_id, 'title': 'Unknown', 'cover_url': None}
+                    if resp.status != 200: 
+                        return {'id': manga_id, 'title': 'Unknown', 'cover_url': None}
                     html = await resp.text()
                     soup = BeautifulSoup(html, "html.parser")
                     
                     series_link = soup.find("a", href=re.compile(r"/series/"))
                     title = "Unknown"
                     if series_link:
-                         title = series_link.get_text(strip=True)
+                        title = series_link.get_text(strip=True)
                     
                     cover_url = None
                     og_img = soup.find("meta", property="og:image")
@@ -117,10 +158,10 @@ class WebCentralAPI:
         """Scrape images from a chapter URL using internal API"""
         images = []
         async with aiohttp.ClientSession(headers=self.headers) as session:
-             try:
+            try:
                 async with session.get(chapter_url, timeout=30) as resp:
                     if resp.status != 200: return None
-                    await resp.text() # Consume response to ensure cookies are processed
+                    await resp.text()
 
                 base_chap_url = chapter_url.rstrip('/')
                 api_url = f"{base_chap_url}/images?is_prev=False&current_page=1&reading_style=long_strip"
@@ -151,9 +192,9 @@ class WebCentralAPI:
                         if full_src not in images:
                             images.append(full_src)
                             
-             except Exception as e:
-                 logger.error(f"WebCentral DL failed: {e}")
-                 return None
+            except Exception as e:
+                logger.error(f"WebCentral DL failed: {e}")
+                return None
         return images
     
     async def search_manga(self, query: str, limit: int = 10) -> List[Dict]:
@@ -165,21 +206,19 @@ class WebCentralAPI:
     async def get_chapter_info(self, chapter_id: str) -> Optional[Dict]:
         """Fetch chapter info from WebCentral page"""
         try:
-             async with aiohttp.ClientSession(headers=self.headers) as session:
+            async with aiohttp.ClientSession(headers=self.headers) as session:
                 async with session.get(chapter_id, timeout=30) as resp:
-                    if resp.status != 200: return {'id': chapter_id, 'chapter': '0', 'title': 'Unknown', 'manga_title': 'WebCentral', 'manga_id': chapter_id}
+                    if resp.status != 200: 
+                        return {'id': chapter_id, 'chapter': '0', 'title': 'Unknown', 'manga_title': 'WebCentral', 'manga_id': chapter_id}
                     html = await resp.text()
                     soup = BeautifulSoup(html, "html.parser")
-                    
                     
                     manga_title = "Unknown"
                     series_link = soup.find("a", href=re.compile(r"/series/"))
                     if series_link:
-                         manga_title = series_link.get_text(strip=True)
-                    
+                        manga_title = series_link.get_text(strip=True)
                     
                     chapter_num = "0"
-                    
                     selected_option = soup.find("option", selected=True)
                     if selected_option:
                         txt = selected_option.get_text(strip=True)
@@ -187,12 +226,12 @@ class WebCentralAPI:
                         if match: chapter_num = match.group(1)
                     
                     if chapter_num == "0":
-                         page_title = soup.title.string if soup.title else ""
-                         match = re.search(r"Chapter\s+(\d+(?:\.\d+)?)", page_title, re.I)
-                         if match: chapter_num = match.group(1)
+                        page_title = soup.title.string if soup.title else ""
+                        match = re.search(r"Chapter\s+(\d+(?:\.\d+)?)", page_title, re.I)
+                        if match: chapter_num = match.group(1)
 
                     return {
-                        'id': hashlib.md5(chapter_id.encode()).hexdigest(), # Hash the URL ID
+                        'id': hashlib.md5(chapter_id.encode()).hexdigest(),
                         'chapter': chapter_num,
                         'title': '',
                         'manga_title': manga_title,
