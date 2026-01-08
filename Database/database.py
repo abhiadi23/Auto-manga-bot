@@ -646,8 +646,8 @@ class Master:
             return None
 
     async def set_watermark(self, text: str, position: str = "bottom-right", 
-                            color: str = "#FFFFFF", opacity: int = 128, 
-                            font_size: int = 20) -> bool:
+                           color: str = "#FFFFFF", opacity: int = 128, 
+                           font_size: int = 20) -> bool:
         """
         Set watermark configuration
         
