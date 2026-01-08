@@ -40,6 +40,8 @@ except ImportError:
 def get_api_class(source):
     return SITES.get(source)
 
+# Store search queries temporarily
+search_queries = {}
 
 @Client.on_message(filters.text & filters.private & ~filters.command(["start", "help", "settings", "search"]))
 async def message_handler(client, message):
@@ -65,11 +67,16 @@ async def search_command_handler(client, message):
         await message.reply("❌ ǫᴜᴇʀʏ ᴛᴏᴏ ꜱʜᴏʀᴛ.")
         return
     
+    # Store the full query with user_id
+    user_id = message.from_user.id
+    search_queries[user_id] = query
+    
     buttons = []
     row = []
     for source in SITES.keys():
         if SITES[source] is not None:
-            row.append(InlineKeyboardButton(source, callback_data=f"search_src_{source}_{query[:30]}"))
+            # Only store source in callback, query retrieved from dict
+            row.append(InlineKeyboardButton(source, callback_data=f"search_src_{source}_{user_id}"))
             if len(row) == 2:  # 2 buttons per row
                 buttons.append(row)
                 row = []
@@ -94,7 +101,13 @@ async def search_command_handler(client, message):
 async def search_source_cb(client, callback_query):
     parts = callback_query.data.split("_", 3)
     source = parts[2]
-    query = parts[3]  # This might be truncated
+    user_id = int(parts[3])
+    
+    # Retrieve the full query from storage
+    query = search_queries.get(user_id)
+    if not query:
+        await callback_query.answer("ꜱᴇᴀʀᴄʜ ᴇxᴘɪʀᴇᴅ. ᴘʟᴇᴀꜱᴇ ꜱᴇᴀʀᴄʜ ᴀɢᴀɪɴ.", show_alert=True)
+        return
     
     api_class = get_api_class(source)
     if not api_class:
@@ -106,8 +119,13 @@ async def search_source_cb(client, callback_query):
         parse_mode=enums.ParseMode.HTML
     )
     
-    async with api_class(Config) as api:
-        results = await api.search_manga(query)
+    try:
+        async with api_class(Config) as api:
+            results = await api.search_manga(query)
+    except Exception as e:
+        logger.error(f"Search error for {source}: {e}", exc_info=True)
+        await status_msg.edit_text(f"❌ ᴇʀʀᴏʀ ꜱᴇᴀʀᴄʜɪɴɢ {source}: {str(e)}")
+        return
     
     if not results:
         await status_msg.edit_text(f"❌ ɴᴏ ʀᴇꜱᴜʟᴛꜱ ꜰᴏᴜɴᴅ ɪɴ {source}.")
