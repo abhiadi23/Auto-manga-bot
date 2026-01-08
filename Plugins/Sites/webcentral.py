@@ -21,11 +21,21 @@ class WebCentralAPI:
     def __init__(self, Config):
         self.Config = Config
         self.base_url = "https://weebcentral.com"
+        # Enhanced headers to bypass 403 blocking
         self.headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Referer": "https://weebcentral.com/",
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5'
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Cache-Control": "max-age=0",
+            "DNT": "1",
+            "Referer": "https://weebcentral.com/"
         }
 
     async def __aenter__(self):
@@ -39,20 +49,63 @@ class WebCentralAPI:
         chapters = []
         urls = [self.base_url]
         
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+        # Create session with SSL verification disabled and cookies enabled
+        connector = aiohttp.TCPConnector(ssl=False)
+        timeout = aiohttp.ClientTimeout(total=60, connect=30)
+        
+        async with aiohttp.ClientSession(
+            headers=self.headers, 
+            connector=connector,
+            timeout=timeout,
+            cookie_jar=aiohttp.CookieJar()
+        ) as session:
             for url in urls:
                 try:
                     logger.info(f"Fetching WebCentral: {url}")
-                    async with session.get(url, timeout=30) as resp:
+                    
+                    # Add a small delay to appear more human-like
+                    await asyncio.sleep(1)
+                    
+                    async with session.get(url, allow_redirects=True) as resp:
+                        logger.info(f"Response status: {resp.status}")
+                        
+                        if resp.status == 403:
+                            logger.error("403 Forbidden - Website is blocking requests. Trying alternative method...")
+                            # Try with different user agent
+                            alt_headers = self.headers.copy()
+                            alt_headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"
+                            
+                            await asyncio.sleep(2)
+                            async with session.get(url, headers=alt_headers, allow_redirects=True) as resp2:
+                                if resp2.status != 200:
+                                    logger.error(f"Alternative method also failed: {resp2.status}")
+                                    continue
+                                resp = resp2
+                        
                         if resp.status != 200:
                             logger.error(f"WebCentral returned status {resp.status}")
                             continue
+                            
                         html = await resp.text()
+                        
+                        # Debug: Check if we got actual HTML
+                        if len(html) < 1000:
+                            logger.warning(f"Response seems too short ({len(html)} bytes), might be blocked")
+                        
                         soup = BeautifulSoup(html, "html.parser")
                         
                         # Try multiple selectors to find chapter links
-                        # Look for any link containing chapter/episode keywords
-                        links = soup.find_all("a", href=True)
+                        logger.info("Parsing page for chapter links...")
+                        
+                        # Method 1: Look for latest updates section
+                        latest_section = soup.find(['div', 'section'], class_=re.compile(r'latest|update|recent', re.I))
+                        if latest_section:
+                            logger.info("Found latest updates section")
+                            links = latest_section.find_all("a", href=True)
+                        else:
+                            # Method 2: Search all links
+                            links = soup.find_all("a", href=True)
+                        
                         logger.info(f"Found {len(links)} total links on page")
                         
                         seen_ids = set()
@@ -61,8 +114,12 @@ class WebCentralAPI:
                         for a in links:
                             href = a.get("href", "")
                             
-                            # Filter for chapter-like URLs
-                            if not any(keyword in href.lower() for keyword in ['/chapter', '/episode', '/read']):
+                            # Filter for chapter-like URLs (broader patterns)
+                            if not any(keyword in href.lower() for keyword in ['/chapter', '/episode', '/read', '/manga', '/series']):
+                                continue
+                            
+                            # Skip if it's just a series link without chapter
+                            if '/series/' in href.lower() and '/chapter' not in href.lower():
                                 continue
                             
                             full_url = urljoin(self.base_url, href)
@@ -75,7 +132,7 @@ class WebCentralAPI:
                             manga_title = None
                             chap_num = None
                             
-                            # Pattern 1: "Title Chapter 123"
+                            # Pattern 1: "Title Chapter 123" or "Title Episode 123"
                             m = re.search(r"(.+?)\s+(?:Episode|Chapter|Ch\.?|Ep\.?)\s+(\d+(?:\.\d+)?)", text_content, re.I)
                             if m:
                                 manga_title = m.group(1).strip()
@@ -125,6 +182,10 @@ class WebCentralAPI:
                             chapters.append(chap)
                             logger.debug(f"Added: {chap['title']} - {chap['url']}")
                                 
+                except asyncio.TimeoutError:
+                    logger.error("Request timed out")
+                except aiohttp.ClientError as e:
+                    logger.error(f"Client error: {e}")
                 except Exception as e:
                     logger.error(f"WebCentral check failed: {e}", exc_info=True)
                     
@@ -133,9 +194,17 @@ class WebCentralAPI:
 
     async def get_manga_info(self, manga_id: str) -> Optional[Dict]:
         """Fetch manga info. Note: manga_id might be a chapter URL if scraped from latest."""
+        connector = aiohttp.TCPConnector(ssl=False)
+        timeout = aiohttp.ClientTimeout(total=60)
+        
         try:
-            async with aiohttp.ClientSession(headers=self.headers) as session:
-                async with session.get(manga_id, timeout=30) as resp:
+            async with aiohttp.ClientSession(
+                headers=self.headers, 
+                connector=connector,
+                timeout=timeout
+            ) as session:
+                await asyncio.sleep(1)  # Rate limiting
+                async with session.get(manga_id, allow_redirects=True) as resp:
                     if resp.status != 200: 
                         return {'id': manga_id, 'title': 'Unknown', 'cover_url': None}
                     html = await resp.text()
@@ -159,9 +228,18 @@ class WebCentralAPI:
     async def get_chapter_images(self, chapter_url: str) -> Optional[List[str]]:
         """Scrape images from a chapter URL using internal API"""
         images = []
-        async with aiohttp.ClientSession(headers=self.headers) as session:
+        connector = aiohttp.TCPConnector(ssl=False)
+        timeout = aiohttp.ClientTimeout(total=60)
+        
+        async with aiohttp.ClientSession(
+            headers=self.headers, 
+            connector=connector,
+            timeout=timeout,
+            cookie_jar=aiohttp.CookieJar()
+        ) as session:
             try:
-                async with session.get(chapter_url, timeout=30) as resp:
+                await asyncio.sleep(1)  # Rate limiting
+                async with session.get(chapter_url, allow_redirects=True) as resp:
                     if resp.status != 200: return None
                     await resp.text()
 
@@ -175,7 +253,8 @@ class WebCentralAPI:
                     "Referer": chapter_url
                 })
                 
-                async with session.get(api_url, headers=api_headers, timeout=30) as resp:
+                await asyncio.sleep(0.5)
+                async with session.get(api_url, headers=api_headers, allow_redirects=True) as resp:
                     if resp.status != 200: 
                         logger.error(f"WebCentral API failed: {resp.status}")
                         return None
@@ -207,9 +286,17 @@ class WebCentralAPI:
 
     async def get_chapter_info(self, chapter_id: str) -> Optional[Dict]:
         """Fetch chapter info from WebCentral page"""
+        connector = aiohttp.TCPConnector(ssl=False)
+        timeout = aiohttp.ClientTimeout(total=60)
+        
         try:
-            async with aiohttp.ClientSession(headers=self.headers) as session:
-                async with session.get(chapter_id, timeout=30) as resp:
+            async with aiohttp.ClientSession(
+                headers=self.headers, 
+                connector=connector,
+                timeout=timeout
+            ) as session:
+                await asyncio.sleep(1)  # Rate limiting
+                async with session.get(chapter_id, allow_redirects=True) as resp:
                     if resp.status != 200: 
                         return {'id': chapter_id, 'chapter': '0', 'title': 'Unknown', 'manga_title': 'WebCentral', 'manga_id': chapter_id}
                     html = await resp.text()
