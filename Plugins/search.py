@@ -151,7 +151,7 @@ async def view_manga_cb(client, callback_query):
     # Validate we have enough parts
     if len(parts) < 3:
         await callback_query.answer("⚠️ Invalid callback data. Please search again.", show_alert=True)
-        logger.error(f"Invalid callback data: {query.data}")
+        logger.error(f"Invalid callback data: {callback_query.data}")
         return
         
         action = parts[0]  # "view_manga"
