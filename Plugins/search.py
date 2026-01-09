@@ -4,7 +4,7 @@
 # Support group @rexbotschat
 
 from pyrogram import Client, filters, enums
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from config import Config
 from Plugins.downloading import Downloader
 from Plugins.Sites.mangadex import MangaDexAPI
@@ -146,7 +146,7 @@ async def search_source_cb(client, callback_query):
 
 
 @Client.on_callback_query(filters.regex("^view_"))
-async def view_manga_cb(client, callback_query):
+async def view_manga_cb(client, query: CallbackQuery):
     parts = query.data.split(":")
     # Validate we have enough parts
     if len(parts) < 3:
