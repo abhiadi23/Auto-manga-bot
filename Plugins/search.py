@@ -147,9 +147,21 @@ async def search_source_cb(client, callback_query):
 
 @Client.on_callback_query(filters.regex("^view_"))
 async def view_manga_cb(client, callback_query):
-    parts = callback_query.data.split("_", 2)
-    source = parts[1]
-    manga_id = parts[2]
+    parts = query.data.split(":")
+    # Validate we have enough parts
+    if len(parts) < 3:
+        await query.answer("⚠️ Invalid callback data. Please search again.", show_alert=True)
+        logger.error(f"Invalid callback data: {query.data}")
+        return
+        
+        action = parts[0]  # "view_manga"
+        source = parts[1]   # e.g., "mangadex", "asura"
+        manga_id = parts[2] # The manga ID
+        
+        # Optional: validate manga_id is not empty
+        if not manga_id or manga_id.strip() == "":
+            await query.answer("⚠️ Invalid manga ID. Please try again.", show_alert=True)
+            return
     
     api_class = get_api_class(source)
     if not api_class:
