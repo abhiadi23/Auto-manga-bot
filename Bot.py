@@ -1,7 +1,7 @@
 # Rexbots
 # Don't Remove Credit
 # Telegram Channel @RexBots_Official 
-#Supoort group @rexbotschat
+# Support group @rexbotschat
 
 
 import sys
@@ -18,6 +18,7 @@ if sys.platform.startswith('win'):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from pyrogram import enums, idle
+from pyrogram.errors import FileReferenceExpired, FloodWait
 import aiofiles
 from aiohttp import web
 from Plugins.web_server import web_server
@@ -34,7 +35,7 @@ from Database.database import *
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(Message)s',
+    format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
@@ -211,7 +212,6 @@ class MangaDexBot:
          source = await self.db_master.get_config('manga_source', 'mangadex')
          return self.get_api_instance(source)
 
-
     async def process_chapter(self, chapter: dict) -> bool:
         chapter_dir = None
         file_path = None
@@ -253,8 +253,6 @@ class MangaDexBot:
 
             source = await self.db_master.get_config('manga_source', 'mangadex')
             
-            
-            
             cover_url = None
             if manga_id not in self.manga_cache:
                 api_instance = self.get_api_instance(source)
@@ -292,6 +290,9 @@ class MangaDexBot:
             source_headers = getattr(api_instance, 'headers', None)
 
             async with Downloader(self.Config) as downloader:
+                # Set bot instance for FILE_REFERENCE_EXPIRED handling
+                downloader.set_bot(self.telegram.app)
+                
                 async def dl_progress(curr, tot):
                     await progress_hook(curr, tot, "Downloading")
 
@@ -313,21 +314,112 @@ class MangaDexBot:
                 intro_path = None
                 outro_path = None
                 
+                # ✅ FIXED: Download banner 1 with FILE_REFERENCE_EXPIRED handling
                 if banner_1_id:
                     intro_path = chapter_dir.parent / "intro_banner.jpg"
-                    try:
-                        await self.telegram.app.download_media(banner_1_id, file_name=str(intro_path))
-                    except Exception as e:
-                        logger.error(f"Failed to download intro banner: {e}")
-                        intro_path = None
+                    max_retries = 3
+                    
+                    for attempt in range(max_retries):
+                        try:
+                            await self.telegram.app.download_media(
+                                banner_1_id,
+                                file_name=str(intro_path)
+                            )
+                            logger.info("✓ Downloaded intro banner")
+                            break  # Success
+                            
+                        except FileReferenceExpired:
+                            logger.warning(f"⚠ Banner 1 FILE_REFERENCE_EXPIRED (attempt {attempt + 1}/{max_retries})")
+                            
+                            # Try to refresh by getting the banner message
+                            try:
+                                banner_msg_id = await self.db_master.get_config("banner_message_id_1")
+                                banner_chat_id = await self.db_master.get_config("banner_chat_id_1")
+                                
+                                if banner_msg_id and banner_chat_id:
+                                    msg = await self.telegram.app.get_messages(int(banner_chat_id), int(banner_msg_id))
+                                    if msg and msg.photo:
+                                        banner_1_id = msg.photo.file_id
+                                        logger.info("✓ Refreshed banner 1 file_id")
+                                        await asyncio.sleep(1)
+                                        continue
+                                    elif msg and msg.document:
+                                        banner_1_id = msg.document.file_id
+                                        logger.info("✓ Refreshed banner 1 file_id (document)")
+                                        await asyncio.sleep(1)
+                                        continue
+                                
+                                logger.error("❌ Cannot refresh banner 1 - missing message info")
+                                intro_path = None
+                                break
+                                
+                            except Exception as refresh_error:
+                                logger.error(f"❌ Failed to refresh banner 1: {refresh_error}")
+                                intro_path = None
+                                break
+                                
+                        except FloodWait as e:
+                            logger.warning(f"⚠ FloodWait {e.value}s for banner 1")
+                            await asyncio.sleep(e.value)
+                            continue
+                            
+                        except Exception as e:
+                            logger.error(f"❌ Failed to download intro banner: {e}")
+                            intro_path = None
+                            break
 
+                # ✅ FIXED: Download banner 2 with FILE_REFERENCE_EXPIRED handling
                 if banner_2_id:
                     outro_path = chapter_dir.parent / "outro_banner.jpg"
-                    try:
-                        await self.telegram.app.download_media(banner_2_id, file_name=str(outro_path))
-                    except Exception as e:
-                         logger.error(f"Failed to download outro banner: {e}")
-                         outro_path = None
+                    max_retries = 3
+                    
+                    for attempt in range(max_retries):
+                        try:
+                            await self.telegram.app.download_media(
+                                banner_2_id,
+                                file_name=str(outro_path)
+                            )
+                            logger.info("✓ Downloaded outro banner")
+                            break  # Success
+                            
+                        except FileReferenceExpired:
+                            logger.warning(f"⚠ Banner 2 FILE_REFERENCE_EXPIRED (attempt {attempt + 1}/{max_retries})")
+                            
+                            try:
+                                banner_msg_id = await self.db_master.get_config("banner_message_id_2")
+                                banner_chat_id = await self.db_master.get_config("banner_chat_id_2")
+                                
+                                if banner_msg_id and banner_chat_id:
+                                    msg = await self.telegram.app.get_messages(int(banner_chat_id), int(banner_msg_id))
+                                    if msg and msg.photo:
+                                        banner_2_id = msg.photo.file_id
+                                        logger.info("✓ Refreshed banner 2 file_id")
+                                        await asyncio.sleep(1)
+                                        continue
+                                    elif msg and msg.document:
+                                        banner_2_id = msg.document.file_id
+                                        logger.info("✓ Refreshed banner 2 file_id (document)")
+                                        await asyncio.sleep(1)
+                                        continue
+                                
+                                logger.error("❌ Cannot refresh banner 2 - missing message info")
+                                outro_path = None
+                                break
+                                
+                            except Exception as refresh_error:
+                                logger.error(f"❌ Failed to refresh banner 2: {refresh_error}")
+                                outro_path = None
+                                break
+                                
+                        except FloodWait as e:
+                            logger.warning(f"⚠ FloodWait {e.value}s for banner 2")
+                            await asyncio.sleep(e.value)
+                            continue
+                            
+                        except Exception as e:
+                            logger.error(f"❌ Failed to download outro banner: {e}")
+                            outro_path = None
+                            break
                 
                 watermark = await self.db_master.get_watermark()
 
@@ -418,10 +510,6 @@ class MangaDexBot:
                     logger.error("Failed to upload to storage")
                     return False
 
-                # Moved mark_chapter_uploaded to after successful posting
-                # await self.mark_chapter_uploaded(chapter_id, manga_id, manga_title, chapter_num, file_id)
-                # await self.save_state()
-
                 try:
                     bot_username = self.telegram.app.me.username if self.telegram.app.me else "Bot"
                 except:
@@ -463,7 +551,7 @@ class MangaDexBot:
                     )
                 
                 try:
-                     auto_channels = await self.db_master.get_auto_update_channels() # Returns list of dicts {'id':..., 'name':...} or similar
+                     auto_channels = await self.db_master.get_auto_update_channels()
                      if auto_channels:
                          for ch in auto_channels:
                              cid = ch.get('id')
@@ -488,9 +576,6 @@ class MangaDexBot:
                     return True
                 
                 if not success:
-                    pass # We already logged in send_post probably
-
-                if not success:
                     return False
 
                 logger.info("Chapter posted successfully!")
@@ -502,19 +587,13 @@ class MangaDexBot:
         except Exception as e:
             logger.error(f"Processing error: {e}")
             return False
-        except Exception as e:
-            logger.error(f"Processing error: {e}")
-            return False
         finally:
             await self.db_master.clear_upload_state()
             try:
                 await asyncio.to_thread(self._safe_cleanup, chapter_dir, file_path, thumb_path)
             except Exception as e:
                 logger.error(f"Final cleanup error: {e}")
-
-        if thumb_path and thumb_path.exists():
-            thumb_path.unlink(missing_ok=True)
-        gc.collect()
+            gc.collect()
 
     async def check_updates(self):
         if self.processing:
@@ -657,4 +736,4 @@ if __name__ == "__main__":
 # Rexbots
 # Don't Remove Credit
 # Telegram Channel @RexBots_Official 
-#Supoort group @rexbotschat
+# Support group @rexbotschat
