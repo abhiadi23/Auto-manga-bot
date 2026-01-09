@@ -1,7 +1,7 @@
 # Rexbots
 # Don't Remove Credit
 # Telegram Channel @RexBots_Official 
-#Supoort group @rexbotschat
+# Support group @rexbotschat
 
 import logging
 import asyncio
@@ -14,7 +14,8 @@ from typing import List, Dict, Optional, Callable, Tuple
 from PIL import Image, ImageDraw, ImageFont, ImageColor
 import zipfile
 import re
-import pypdf # Added for PDF password protection
+import pypdf
+from pyrogram.errors import FileReferenceExpired, FloodWait
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class Downloader:
         refresh_message_callback: Callable = None
     ) -> bool:
         """
-        Download image with improved FILE_REFERENCE_EXPIRED handling
+        Download image with comprehensive FILE_REFERENCE_EXPIRED handling
         
         Args:
             url: Direct download URL or Telegram file path
@@ -62,67 +63,46 @@ class Downloader:
             refresh_message_callback: Callback to refresh message and get new file_id (args: chat_id, message_id)
         """
         current_file_id = file_id
+        current_url = url
         
         for attempt in range(max_retries):
             try:
-                # For Telegram files with expired references, refresh the message first
+                # CRITICAL: Refresh file reference before retry attempts
                 if attempt > 0 and refresh_message_callback and message_id and chat_id:
                     try:
-                        logger.info(f"Refreshing message {message_id} to get new file reference (attempt {attempt + 1}/{max_retries})")
+                        logger.info(f"Refreshing message {message_id} to get fresh file reference (attempt {attempt + 1}/{max_retries})")
                         new_file_id, new_url = await refresh_message_callback(chat_id, message_id)
                         if new_file_id and new_url:
                             current_file_id = new_file_id
-                            url = new_url
-                            logger.info(f"Got fresh file_id and URL from message refresh")
-                            # Small delay to avoid rate limiting
+                            current_url = new_url
+                            logger.info(f"Successfully refreshed file_id and URL")
                             await asyncio.sleep(1)
                         else:
-                            logger.error("Failed to refresh message and get new file reference")
+                            logger.error("Failed to refresh message - got empty response")
                             if attempt == max_retries - 1:
                                 return False
-                            await asyncio.sleep(2)
+                            await asyncio.sleep(2 ** attempt)
                             continue
+                    except FileReferenceExpired as e:
+                        logger.warning(f"FILE_REFERENCE_EXPIRED during message refresh: {e}")
+                        if attempt == max_retries - 1:
+                            return False
+                        await asyncio.sleep(2 ** attempt)
+                        continue
+                    except FloodWait as e:
+                        logger.warning(f"FloodWait during refresh: waiting {e.value}s")
+                        await asyncio.sleep(e.value)
+                        continue
                     except Exception as e:
                         logger.error(f"Error refreshing message: {e}")
                         if attempt == max_retries - 1:
                             return False
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(2 ** attempt)
                         continue
-                
-                # If we only have file_id callback (fallback method)
-                elif attempt > 0 and get_file_callback and current_file_id and not refresh_message_callback:
-                    try:
-                        logger.info(f"Refreshing file reference for {current_file_id} (attempt {attempt + 1}/{max_retries})")
-                        fresh_url = await get_file_callback(current_file_id)
-                        if fresh_url:
-                            url = fresh_url
-                            logger.info("File reference refreshed via get_file")
-                            await asyncio.sleep(1)
-                        else:
-                            logger.error("Failed to get fresh file URL")
-                            if attempt == max_retries - 1:
-                                return False
-                            await asyncio.sleep(2)
-                            continue
-                    except Exception as e:
-                        error_str = str(e).lower()
-                        if 'file_reference_expired' in error_str or 'file reference' in error_str:
-                            logger.warning(f"FILE_REFERENCE_EXPIRED during callback: {e}")
-                            # Can't refresh without message context
-                            if attempt == max_retries - 1:
-                                return False
-                            await asyncio.sleep(2)
-                            continue
-                        else:
-                            logger.error(f"Error getting fresh file: {e}")
-                            if attempt == max_retries - 1:
-                                return False
-                            await asyncio.sleep(2)
-                            continue
                 
                 request_headers = headers if headers else self.session.headers
                 
-                async with self.session.get(url, headers=request_headers) as response:
+                async with self.session.get(current_url, headers=request_headers) as response:
                     # Handle rate limiting
                     if response.status == 429:
                         retry_after = int(response.headers.get('Retry-After', min(2 ** attempt, 10)))
@@ -130,20 +110,16 @@ class Downloader:
                         await asyncio.sleep(retry_after)
                         continue
                     
-                    # Handle FILE_REFERENCE_EXPIRED and related 400 errors
+                    # Handle FILE_REFERENCE_EXPIRED in HTTP response
                     if response.status == 400:
                         error_text = await response.text()
-                        if any(keyword in error_text.lower() for keyword in ['file_reference_expired', 'file reference', 'invalid file', 'file id']):
-                            logger.warning(f"File reference expired in HTTP response (attempt {attempt + 1}/{max_retries})")
-                            # Need message refresh for proper fix
+                        if 'FILE_REFERENCE_EXPIRED' in error_text or 'file_reference_expired' in error_text.lower():
+                            logger.warning(f"FILE_REFERENCE_EXPIRED in HTTP 400 response (attempt {attempt + 1}/{max_retries})")
                             if refresh_message_callback and message_id and chat_id:
                                 await asyncio.sleep(min(2 ** attempt, 10))
                                 continue
-                            elif get_file_callback and current_file_id:
-                                await asyncio.sleep(min(2 ** attempt, 10))
-                                continue
                             else:
-                                logger.error("Cannot refresh file reference - no refresh callback provided")
+                                logger.error("Cannot refresh file reference - no callback provided")
                                 return False
                         else:
                             logger.error(f"HTTP 400 error: {error_text[:200]}")
@@ -154,7 +130,6 @@ class Downloader:
                         logger.error(f"Client error {response.status}: {await response.text()}")
                         return False
                     
-                    # Raise for server errors
                     response.raise_for_status()
 
                     # Download with size check
@@ -164,7 +139,6 @@ class Downloader:
                             size += len(chunk)
                             if size > self.Config.MAX_IMAGE_SIZE:
                                 logger.error(f"Image too large: {size} bytes (max: {self.Config.MAX_IMAGE_SIZE})")
-                                # Clean up partial file
                                 try:
                                     output_path.unlink(missing_ok=True)
                                 except:
@@ -175,12 +149,27 @@ class Downloader:
                     logger.debug(f"Successfully downloaded {output_path.name} ({size} bytes)")
                     return True
                     
-            except aiohttp.ClientResponseError as e:
-                # Special handling for 400 errors with file_id
-                if e.status == 400:
-                    logger.warning(f"HTTP 400 error, need to refresh file reference (attempt {attempt + 1}/{max_retries})")
+            except FileReferenceExpired as e:
+                logger.warning(f"Pyrogram FILE_REFERENCE_EXPIRED caught (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1 and refresh_message_callback and message_id and chat_id:
                     await asyncio.sleep(min(2 ** attempt, 10))
                     continue
+                else:
+                    logger.error("Cannot recover from FILE_REFERENCE_EXPIRED")
+                    return False
+                    
+            except FloodWait as e:
+                logger.warning(f"FloodWait: waiting {e.value}s")
+                await asyncio.sleep(e.value)
+                # Don't count FloodWait as a retry attempt
+                continue
+                    
+            except aiohttp.ClientResponseError as e:
+                if e.status == 400:
+                    logger.warning(f"HTTP 400 - likely expired file reference (attempt {attempt + 1}/{max_retries})")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(min(2 ** attempt, 10))
+                        continue
                     
                 logger.error(f"Download failed with {e.status} (attempt {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
@@ -192,18 +181,9 @@ class Downloader:
                     await asyncio.sleep(min(2 ** attempt, 10))
                     
             except Exception as e:
-                error_str = str(e).lower()
-                # Detect Pyrogram FILE_REFERENCE_EXPIRED
-                if 'file_reference_expired' in error_str or 'file reference' in error_str:
-                    logger.warning(f"Pyrogram FILE_REFERENCE_EXPIRED detected (attempt {attempt + 1}/{max_retries})")
-                    # Need to refresh via message
-                    if attempt < max_retries - 1:
-                        await asyncio.sleep(min(2 ** attempt, 10))
-                        continue
-                else:
-                    logger.error(f"Download failed (attempt {attempt + 1}/{max_retries}): {type(e).__name__}: {e}")
-                    if attempt < max_retries - 1:
-                        await asyncio.sleep(min(2 ** attempt, 10))
+                logger.error(f"Download failed (attempt {attempt + 1}/{max_retries}): {type(e).__name__}: {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(min(2 ** attempt, 10))
         
         # Clean up failed download
         try:
@@ -227,24 +207,11 @@ class Downloader:
         chat_id: int = None,
         refresh_message_callback: Callable = None
     ) -> bool:
-        """
-        Download multiple images with improved error handling and progress tracking
-        
-        Args:
-            urls: List of URLs to download
-            output_dir: Directory to save files
-            progress_callback: Optional callback for progress updates
-            headers: Optional HTTP headers
-            file_ids: List of Telegram file_ids
-            get_file_callback: Callback to get file URL from file_id
-            message_ids: List of message IDs containing the files
-            chat_id: Chat ID containing the messages
-            refresh_message_callback: Callback to refresh messages and get new file data
-        """
+        """Download multiple images with comprehensive error handling"""
         output_dir.mkdir(parents=True, exist_ok=True)
-        batch_size = 3  # Reduced to 3 for better stability on Heroku
+        batch_size = 3
         successful = 0
-        failed_items = []  # Store (index, reason) tuples
+        failed_items = []
 
         for i in range(0, len(urls), batch_size):
             batch_end = min(i + batch_size, len(urls))
@@ -269,7 +236,6 @@ class Downloader:
                     )
                 )
 
-            # Execute batch with error collection
             results = await asyncio.gather(*tasks, return_exceptions=True)
             
             for idx, result in enumerate(results):
@@ -280,33 +246,30 @@ class Downloader:
                 elif result is True:
                     successful += 1
                 else:
-                    failed_items.append((actual_idx, "Unknown failure"))
+                    failed_items.append((actual_idx, "Download returned False"))
             
-            # Update progress
             if progress_callback:
                 try:
                     await progress_callback(successful, len(urls))
                 except Exception as e:
                     logger.error(f"Progress callback error: {e}")
             
-            # Cleanup and pause between batches
             gc.collect()
-            await asyncio.sleep(1.5)  # Increased pause for Heroku stability
+            await asyncio.sleep(1.5)
 
-        # Retry failed downloads with message refresh
+        # Retry failed downloads
         if failed_items and refresh_message_callback and chat_id:
-            logger.info(f"Retrying {len(failed_items)} failed downloads with message refresh")
+            logger.info(f"Retrying {len(failed_items)} failed downloads")
             await asyncio.sleep(2)
             
-            for idx, reason in failed_items[:]:  # Copy list for safe removal
+            for idx, reason in failed_items[:]:
                 url = urls[idx]
                 output_path = output_dir / f"{idx + 1:03d}.jpg"
                 message_id = message_ids[idx] if message_ids and len(message_ids) > idx else None
                 
                 if message_id:
                     try:
-                        # Refresh message to get new file_id
-                        logger.info(f"Final retry for image {idx + 1} with message refresh")
+                        logger.info(f"Final retry for image {idx + 1}")
                         new_file_id, new_url = await refresh_message_callback(chat_id, message_id)
                         
                         if new_file_id and new_url:
@@ -324,7 +287,6 @@ class Downloader:
                             if result:
                                 successful += 1
                                 failed_items.remove((idx, reason))
-                                logger.info(f"Successfully downloaded image {idx + 1} on retry")
                     except Exception as e:
                         logger.error(f"Final retry failed for image {idx + 1}: {e}")
                 
@@ -335,26 +297,24 @@ class Downloader:
         
         if failed_items:
             failed_indices = [idx for idx, _ in failed_items]
-            logger.warning(f"Failed to download images at indices: {failed_indices}")
+            logger.warning(f"Failed images at indices: {failed_indices}")
         
         return success_rate >= 0.8
 
     def validate_image(self, img_path: Path) -> bool:
         """Validate if file is a proper image"""
         if not img_path.exists():
-            logger.error(f"Image file does not exist: {img_path}")
             return False
         
         if img_path.stat().st_size == 0:
-            logger.error(f"Image file is empty: {img_path}")
             return False
         
         try:
             with Image.open(img_path) as img:
-                img.verify()  # Verify it's a valid image
+                img.verify()
             return True
         except Exception as e:
-            logger.error(f"Invalid image file {img_path}: {e}")
+            logger.error(f"Invalid image {img_path}: {e}")
             return False
 
     def create_pdf(self, chapter_dir: Path, manga_title: str, chapter_num: str, chapter_title: str) -> Optional[Path]:
@@ -426,19 +386,13 @@ class Downloader:
             
             final_images = []
             
-            # Validate intro image
             if intro and intro.exists() and self.validate_image(intro):
                 final_images.append(intro)
-            elif intro:
-                logger.warning(f"Skipping invalid intro image: {intro}")
             
             final_images.extend(img_files)
             
-            # Validate outro image
             if outro and outro.exists() and self.validate_image(outro):
                 final_images.append(outro)
-            elif outro:
-                logger.warning(f"Skipping invalid outro image: {outro}")
 
             with zipfile.ZipFile(cbz_path, 'w', zipfile.ZIP_DEFLATED) as cbz:
                 for idx, img_path in enumerate(final_images):
@@ -533,8 +487,8 @@ class Downloader:
             with open(temp_path, "wb") as f:
                 writer.write(f)
             
-            pdf_path.unlink()  # Delete unprotected
-            temp_path.rename(pdf_path)  # Move protected
+            pdf_path.unlink()
+            temp_path.rename(pdf_path)
             return True
         except Exception as e:
             logger.error(f"Password protection failed: {e}")
@@ -554,56 +508,38 @@ class Downloader:
 
             img_files = sorted(chapter_dir.glob("*.jpg"))
             if not img_files:
-                logger.error("No image files found in chapter directory")
+                logger.error("No image files found")
                 return None
 
             final_images = []
             
-            # Validate and add intro image
-            if intro and intro.exists():
-                if self.validate_image(intro):
-                    final_images.append(intro)
-                else:
-                    logger.warning(f"Skipping invalid intro image: {intro}")
-            elif intro:
-                logger.warning(f"Intro image does not exist: {intro}")
+            if intro and intro.exists() and self.validate_image(intro):
+                final_images.append(intro)
             
             final_images.extend(img_files)
             
-            # Validate and add outro image
-            if outro and outro.exists():
-                if self.validate_image(outro):
-                    final_images.append(outro)
-                else:
-                    logger.warning(f"Skipping invalid outro image: {outro}")
-            elif outro:
-                logger.warning(f"Outro image does not exist: {outro}")
+            if outro and outro.exists() and self.validate_image(outro):
+                final_images.append(outro)
 
             images_to_save = []
             first_image = None
-            
             q = quality if quality is not None else 85
             
             for i, img_path in enumerate(final_images):
                 try:
-                    # Validate before opening
                     if not self.validate_image(img_path):
-                        logger.warning(f"Skipping invalid image: {img_path}")
                         continue
                     
                     img = Image.open(img_path)
                     
-                    # Resize if needed
                     if img.width > 2000 or img.height > 2000:
                         ratio = min(2000 / img.width, 2000 / img.height)
                         new_size = (int(img.width * ratio), int(img.height * ratio))
                         img = img.resize(new_size, Image.Resampling.LANCZOS)
                     
-                    # Convert to RGB
                     if img.mode != 'RGB':
                         img = img.convert('RGB')
                     
-                    # Apply watermark
                     if watermark:
                         img = self.apply_watermark(img, watermark)
 
@@ -616,30 +552,25 @@ class Downloader:
                         gc.collect()
                 
                 except Exception as e:
-                    logger.error(f"Failed to process image {img_path}: {e}")
+                    logger.error(f"Failed to process {img_path}: {e}")
                     continue
 
             if not first_image:
-                logger.error("No valid first image found for PDF creation")
                 return None
 
-            # Save PDF
             first_image.save(
                 pdf_path, "PDF", resolution=72.0, save_all=True,
                 append_images=images_to_save, optimize=True, quality=q
             )
             
-            # Cleanup
             for img in images_to_save: 
                 img.close()
             first_image.close()
             gc.collect()
             
-            # Apply password protection
             if password:
                 self.apply_password(pdf_path, password)
             
-            logger.info(f"PDF created successfully: {pdf_path}")
             return pdf_path
             
         except Exception as e:
@@ -675,4 +606,4 @@ class Downloader:
 # Rexbots
 # Don't Remove Credit
 # Telegram Channel @RexBots_Official 
-#Supoort group @rexbotschat
+# Support group @rexbotschat
