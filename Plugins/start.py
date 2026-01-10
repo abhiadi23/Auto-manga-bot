@@ -19,6 +19,23 @@ logger.info("PLUGIN LOAD: start.py loaded successfully")
 @Client.on_message(filters.command("start"))
 async def start_msg(client, message):
     try:
+        text = message.text
+        if len(text) > 7:
+            try:
+                base64_string = text.split(" ", 1)[1]
+            except IndexError:
+                return
+
+        string = await decode(base64_string)
+        temp_msg = await message.reply("<b>Please wait...</b>")
+        try:
+            messages = await get_messages(client, ids)
+        except Exception as e:
+            await message.reply_text("Something went wrong!")
+            print(f"Error getting messages: {e}")
+            return
+        finally:
+            await temp_msg.delete()
         await Seishiro.add_user(client, message)
         
         caption = (
