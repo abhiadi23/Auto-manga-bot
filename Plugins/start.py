@@ -24,7 +24,7 @@ async def start_msg(client, message):
         caption = (
             f"<b>👋 ʜᴇʟʟᴏ {message.from_user.first_name}!</b>\n\n"
             f"<blockquote><b>ɪ ᴀᴍ ᴀɴ ᴀᴅᴠᴀɴᴄᴇᴅ ᴍᴀɴɢᴀ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ & ᴜᴘʟᴏᴀᴅᴇʀ ʙᴏᴛ."</b></blockquote>\n\n"
-            f"<i>  ᴄʟɪᴄᴋ ᴛʜᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛʀᴏʟ ᴍᴇ!  </i>"
+            f"<i>ᴄʟɪᴄᴋ ᴛʜᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ ᴛᴏ ᴄᴏɴᴛʀᴏʟ ᴍᴇ!</i>"
         )
         
         if hasattr(Config, "PICS") and Config.PICS:
@@ -34,12 +34,12 @@ async def start_msg(client, message):
 
         buttons = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton(" Settings", callback_data="settings_menu"),
-                InlineKeyboardButton(" Help", callback_data="help_menu")
+                InlineKeyboardButton("Sᴇᴛᴛɪɴɢs", callback_data="settings_menu"),
+                InlineKeyboardButton("Hᴇʟᴘ", callback_data="help_menu")
             ],
             [
-                InlineKeyboardButton(" Official Channel", url="https://t.me/RexBots_Official"),
-                InlineKeyboardButton(" Developer", url="https://t.me/RexBots_Official")
+                InlineKeyboardButton("ᴄʜᴀɴɴᴇʟ", url="https://t.me/RexBots_Official"),
+                InlineKeyboardButton("Dᴇᴠᴇʟᴏᴘᴇʀ", url="https://t.me/RexBots_Official")
             ]
         ])
 
@@ -74,14 +74,11 @@ async def start_msg(client, message):
 @Client.on_callback_query(filters.regex("^help_menu$"))
 async def help_menu(client, callback_query):
     paraphrased = (
-        "<b>📚 How to Use</b>\n\n"
-        "• <b>Search Manga:</b> Just send me the manga name (e.g. `One Piece`) to begin.\n\n"
-        "• <b>Select Source:</b> Choose your preferred Language and Website from the options.\n\n"
-        "• <b>Download or Subscribe:</b> You can download individual chapters or Subscribe to get auto-updates when new chapters are released.\n\n"
-        "<b>📢 Updates Channel:</b> @RexBots_Official"
-    )
+        f"Iᴛ's ᴀ ᴀᴅᴠᴀɴᴄᴇ ᴀᴜᴛᴏ ᴍᴀɴɢᴀ ʙᴏᴛ ғᴏʀ sᴇᴀʀᴄʜ ᴀ ᴘᴀʀᴛɪᴄᴜʟᴀʀ ᴍᴀɴɢᴀ ᴜsᴇ ʟɪᴋᴇ ᴛʜɪs.\n"
+        f"Usᴀɢᴇ:- /search <manga name>"
+            )
     
-    buttons = [[InlineKeyboardButton("🔙 back", callback_data="start_menu")]]
+    buttons = [[InlineKeyboardButton("🔙 Bᴀᴄᴋ", callback_data="start_menu")]]
     
     await edit_msg_with_pic(callback_query.message, paraphrased, InlineKeyboardMarkup(buttons))
 
