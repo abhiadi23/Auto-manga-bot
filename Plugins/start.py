@@ -99,6 +99,28 @@ async def help_menu(client, callback_query):
     
     await edit_msg_with_pic(callback_query.message, paraphrased, InlineKeyboardMarkup(buttons))
 
+async def get_messages(client, message_ids):
+    messages = []
+    total_messages = 0
+    while total_messages != len(message_ids):
+        temb_ids = message_ids[total_messages:total_messages+200]
+        try:
+            msgs = await client.get_messages(
+                chat_id=client.db_channel.id,
+                message_ids=temb_ids
+            )
+        except FloodWait as e:
+            await asyncio.sleep(e.x)
+            msgs = await client.get_messages(
+                chat_id=client.db_channel.id,
+                message_ids=temb_ids
+            )
+        except:
+            pass
+        total_messages += len(temb_ids)
+        messages.extend(msgs)
+    return messages
+
 
 # Rexbots
 # Don't Remove Credit
